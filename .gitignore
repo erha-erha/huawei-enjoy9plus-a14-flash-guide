@@ -1,0 +1,15 @@
+# Binary firmware images, APKs, logs, and local secrets
+*.img
+*.img.xz
+*.zip
+*.apk
+*.APP
+*.log
+*.lnk
+*.png
+*.jpg
+*.xml
+*.yaml
+*.yml
+.DS_Store
+Thumbs.db
