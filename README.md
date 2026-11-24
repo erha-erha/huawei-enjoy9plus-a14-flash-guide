@@ -175,6 +175,14 @@ fastboot flash recovery_ramdisk recovery.img
   ```
   重启后实测直接通过官方 Google Play 商店顺利装齐 **Chrome、Gmail、YouTube、Google 地图、Google 相册、Google 云端硬盘、Google 翻译**，且可自动处理 Chrome 的 `TrichromeLibrary` 依赖和后续自动更新。
 
+### 5.4 核心复盘：开机后热插拔 SIM 卡无法识别（`ABSENT` / `+CME ERROR: 10`）
+- **现象**：刷完首次空卡开机进系统后，再把 SIM 卡热插拔插回卡槽，系统一直显示无 SIM 卡（`gsm.sim.state=ABSENT,ABSENT`），即便开关飞行模式，基带依然返回 `+CME ERROR: 10`（SIM not inserted）。
+- **根因定位（`dmesg` + `logcat -b radio` + `/odm/phone.prop`）**：
+  - 拔出卡托时，内核 `mod_simhotplug` 触发 `SIM_CARD_OUT`，由于原厂属性 `ro.odm.pwroff_card_if_tray_out=true`，巴龙基带给卡槽断电。
+  - 重新插卡时，虽然内核正常检测到卡托插入并发送 `SIM_CARD_IN`（`bsp_icc_send to CP`），但类原生 LeaOS 下缺少 EMUI 专属 `HwUiccController` 发送 `AT^HVSST=1,1` 重新激活卡槽供电，导致热插拔后基带保持断电状态、无法读取 SIM 卡。
+- **解法**：**插好 SIM 卡后重启一次手机即可**。带卡冷/热重启后，巴龙基带在启动阶段自动完成卡槽上电与 USIM 初始化（`+CPIN: READY` / `^CARDMODE:2`），实测中国移动 4G LTE 语音、短信与移动数据（`CMNET` / `rmnet0`）立即全部恢复正常。
+- **额外提示**：在 Phh Treble Settings 里不要随意反复切换“强制单卡（`persist.sys.phh.monosim`）”，该触发脚本会用通用值（`09A9D`）覆盖 `/odm/phone.prop` 里本机原厂的 `persist.radio.modem.cap=09B9D52`。
+
 ---
 
 ## 6. 阶段五：刷机收尾（清理旧版驱动、恢复 Win11 内存完整性）
@@ -206,3 +214,4 @@ fastboot flash recovery_ramdisk recovery.img
 | 误下载 `1-Huawei-DataPrep-A14-AB-v1.0-signed.zip` | 该包仅适用于 `hi6250`（麒麟 659） | **严禁刷入**麒麟 710 设备 |
 | 首次进入系统卡在“正在准备我的设备” | 国内无外网，Google SetupWizard 联网超时 | 离线跳过开机向导，进桌面先用 ADB 装代理再登录 Google |
 | Play 商店点击 Chrome“安装”完全无反应 | 首次登录后台自更新导致透明 `SheetUiBuilderHostActivity` 卡死挡住点击 | 划掉后台或执行 `adb shell am force-stop com.android.vending` 后重开即可 |
+| 开机后热插拔 SIM 卡显示无卡（`+CME ERROR: 10`） | 拔卡断电后类原生系统未自动下发 `AT^HVSST=1,1` 重新上电 | 插好 SIM 卡后重启手机一次即可恢复语音、短信与 4G LTE |
