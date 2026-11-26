@@ -113,22 +113,39 @@ fastboot flash recovery_ramdisk recovery.img
 ### 4.3 Root-Cause Analysis: Infinite LineageOS 3-Circle Bootloop
 Two separate issues combined to cause an endless bootloop on the 3-circle LineageOS boot animation:
 
-1. **Cause #1 — Stock EMUI 9.1 Kernel Lacks Android 14 Patches**:
-   - The stock `4.9.148` kernel lacks Android 14 `LOOP_CONFIGURE` / loop-device and mount patches.
+1. **Cause #1 — Stock EMUI 9.1 Kernel Lacks Android 14 Patches (Kirin 710)**:
+   - The stock Kirin 710 `4.9.148` kernel lacks Android 14 `LOOP_CONFIGURE` / loop-device and mount patches.
    - **Fix**: Flash `Kirin710_EMUI9.1_PM-2025.11.16-04_35.img` to `kernel`.
-2. **Cause #2 — Stock EMUI 9.1 Recovery F2FS Superblock CRC Mismatch (Subtle!)**:
-   - Formatting `/data` with **stock EMUI 9.1 Recovery** enables newer F2FS superblock checksum features (`superblock features = 481: encrypt verity quota_ino`).
-   - On boot, the kernel fails to mount `/dev/block/mmcblk0p70`:
+2. **Cause #2 — Stock EMUI 9.1 Recovery F2FS Superblock CRC Mismatch (Universal Cross-Device EMUI 9.1 Trap!)**:
+   - Formatting `/data` with **stock EMUI 9.1 Recovery** enables Huawei's newer/proprietary F2FS superblock checksum & feature bits (`superblock features = 481: encrypt verity quota_ino`).
+   - Meanwhile, **unpatched upstream `f2fs-tools` / generic TWRP** also fails on Huawei EMUI 9.1 `4.9` kernels because upstream `mkfs.f2fs` enables `CP_NAT_BITS_FLAG` (NAT bitmap checkpoint pages), which Huawei's EMUI 9.1 F2FS kernel driver does not support (Iceows specifically strips this via `0001-mkfs.f2fs-Remove-NAT-Bitmap-to-support-Huawei-EMUI9-.patch`).
+   - On boot, `/system` (EROFS) still mounts and launches `init` + `surfaceflinger` + the 3-circle boot animation, **but the kernel rejects `/data` (`userdata`)**:
      ```text
      F2FS-fs (mmcblk0p70): Invalid checksum crc(0x...)
+     F2FS-fs (mmcblk0p70): Can't find valid F2FS filesystem in 1th/2th superblock
      ```
-     `mount_all` fails → `/data` never mounts → `credstore` crashes in an infinite loop → stuck on the boot animation forever.
+     `mount_all` fails → `/data` never mounts → `credstore` (`chdir: /data/misc/credstore: No such file or directory`) and `tombstoned` (`failed to open directory: /data/tombstones`, fatal signal 6) crash in an infinite loop → stuck on the 3-circle boot animation forever.
+
+> **⚠️ Cross-Device Warning (Same Failure Pattern on Other Huawei/Honor EMUI 9.1 Devices — Verified on Kirin 970)**:
+> This exact 3-circle boot hang is **NOT unique to Enjoy 9 Plus (`JKM-AL00b` / Kirin 710)** — it is a **general Huawei EMUI 9.1 F2FS formatting trap** that reproduces identically on other Kirin SoCs when flashing `LeaOS 21.0` (`iceows-google-pot.img`) and wiping data via stock EMUI 9.1 Recovery.
+>
+> | Comparison | Enjoy 9 Plus (`JKM-AL00b` / Kirin 710) | Honor Play (`COR-AL10` / Kirin 970) |
+> | :--- | :--- | :--- |
+> | **Storage / `userdata` node** | eMMC (`/dev/block/mmcblk0p70`, ~111 GB) | UFS (`/dev/block/sdd66`, ~112 GB) |
+> | **Failure after stock Recovery wipe** | `F2FS-fs (mmcblk0p70): Invalid checksum crc` → `credstore` crash → 3-circle hang | `F2FS-fs (sdd66): Invalid checksum crc(0x100b1449)` → `credstore` / `tombstoned` crash → 3-circle hang |
+> | **ROM compatibility (`LeaOS-21.0-*-google-pot.img` EROFS)** | Mounts cleanly | Mounts cleanly (`rc=0`, reads compressed `framework.jar` with zero EROFS errors) |
+> | **Required Recovery (Iceows `make_f2fs`)** | `SHRP v3.1 potter` (`make_f2fs 1.13.0`) | `SHRP-Reborn v3.2 charlotte` (`make_f2fs 1.14.0`, Kirin 970 UFS) |
+> | **Kernel requirement** | Required Iceows patched `Kirin710_EMUI9.1_PM` kernel + F2FS fix | Booted in **90s** on stock `9.1.0.350` `4.9.148` kernel (with 212-byte SELinux-unlock patch, Enforcing at boot) after F2FS fix alone |
+>
+> **Takeaway for any Huawei/Honor EMUI 9.1 device**: Never rely on stock EMUI 9.1 Recovery's Factory Reset alone when moving to Android 14 (`LeaOS 21.0`). Always use an Iceows-built SHRP matching your SoC/storage family (`potter` for Kirin 710 eMMC, `charlotte` for Kirin 970 UFS), format `userdata` with Iceows's patched `/system/bin/make_f2fs -f -O encrypt -w 4096 /dev/block/by-name/userdata` (**do NOT copy another model's sector count verbatim**), and verify `mount -t f2fs` succeeds before rebooting.
 
 ### 4.4 Proper `/data` Format Inside SHRP Recovery
 1. Boot into **SHRP Recovery**. When asked `Keep System Read Only?`, **keep it read-only** (do not modify the EROFS `system` partition).
 2. Over `adb shell` in SHRP, format `userdata` using Iceows' custom `/system/bin/make_f2fs` (`Ver Iceows (Huawei EMUI9): 1.13.0`), verify direct kernel mount, wipe `/cache`, and reboot:
    ```sh
-   # Format userdata with -O encrypt (without the conflicting checksum feature bits)
+   # Format userdata with -O encrypt (without the conflicting checksum / NAT-bitmap feature bits)
+   # Note: 233340896 is specific to Enjoy 9 Plus (JKM-AL00b). On other EMUI 9.1 devices
+   # (e.g., Honor Play COR-AL10), omit the sector count so make_f2fs auto-sizes the partition.
    /system/bin/make_f2fs -f -O encrypt -w 4096 /dev/block/by-name/userdata 233340896
 
    # Verify clean F2FS mount before rebooting (must return 0 and show ~111G)
@@ -218,7 +235,7 @@ Once flashing and USB debugging are finished, remove the legacy 2016 Huawei kern
 | Hardware testpoint shows unknown `USB SER` (`VID_12D1&PID_3609`) | Windows doesn't auto-match `HUAWEI USB COM 1.0` | Bind WHQL-signed `hw_quser.inf` via SetupAPI `DiInstallDevice` (no test-signing needed) |
 | SWTP fails with `Failed to send partition header` | EMUI 9.1 `2021-03-01` security patch blocks SWTP | Use Hardware Testpoint + `Kirin-Tool v2.4.2` |
 | `Kirin-Tool` throws `Access to path ...\dload is denied` | Process CWD is outside the `Kirin-Tool` directory | Launch via `.lnk` shortcut with `WorkingDirectory` set to the `Kirin-Tool` folder |
-| Infinite LineageOS 3-circle bootloop after flashing A14 | Stock kernel missing A14 patches + stock Recovery F2FS superblock CRC conflict | Flash Iceows A14 kernel + SHRP; format `userdata` in SHRP with `/system/bin/make_f2fs -f -O encrypt -w 4096` |
+| Infinite LineageOS 3-circle bootloop after flashing A14 (also reproduces on Kirin 970 / Honor Play) | Stock EMUI 9.1 Recovery F2FS superblock CRC conflict (`Invalid checksum crc` → `/data` unmounted → `credstore` crash), plus on Kirin 710 missing A14 kernel `LOOP_CONFIGURE` patches | Flash matching Iceows SHRP (`potter` for Kirin 710 eMMC, `charlotte` for Kirin 970 UFS), reformat `userdata` with Iceows `/system/bin/make_f2fs -f -O encrypt -w 4096`, verify `mount -t f2fs`; on Kirin 710 also flash Iceows A14 kernel |
 | Downloaded `1-Huawei-DataPrep-A14-AB-v1.0-signed.zip` | Built for `hi6250` (Kirin 659), NOT Kirin 710 | **Do NOT flash** on Kirin 710 |
 | SetupWizard stuck on *"Getting your phone ready..."* | Restricted internet prevents Google check-in | Finish SetupWizard offline, install proxy via ADB, then sign in |
 | Tapping **Install** on Chrome in Play Store does nothing | Invisible `SheetUiBuilderHostActivity` stuck during background Play Store/GMS self-update | Force-stop Play Store (`adb shell am force-stop com.android.vending`) and reopen |

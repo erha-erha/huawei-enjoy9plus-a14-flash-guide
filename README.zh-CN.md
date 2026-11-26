@@ -113,23 +113,40 @@ fastboot flash recovery_ramdisk recovery.img
 ### 4.3 核心复盘：为什么刷完只卡“三个转圈”无限重启？
 本次实战踩穿了**两个叠加根因**，缺一不可：
 
-1. **根因一：原厂 4.9.148 内核缺少 Android 14 必需补丁**
-   - 直接用 EMUI 9.1 原厂内核启动 Android 14 会因缺少 `LOOP_CONFIGURE` / loop 设备与挂载相关内核补丁导致启动失败。
+1. **根因一：原厂 4.9.148 内核缺少 Android 14 必需补丁（麒麟 710）**
+   - 麒麟 710 直接用 EMUI 9.1 原厂内核启动 Android 14 会因缺少 `LOOP_CONFIGURE` / loop 设备与挂载相关内核补丁导致启动失败。
    - **解法**：必须刷入上文 Iceows 编译的 `Kirin710_EMUI9.1_PM-2025.11.16-04_35.img`。
-2. **根因二：EMUI 9.1 原厂 Recovery 格式化 `/data` 导致的 F2FS Superblock 校验冲突（最隐蔽！）**
-   - 如果使用 EMUI 9.1 原厂 Recovery 执行“恢复出厂设置 / 格式化 Data”，它会启用较新的 F2FS 特性位 `superblock features = 481 (encrypt verity quota_ino)`。
-   - 导致 A14 内核启动挂载 `/dev/block/mmcblk0p70` 时报错：
+2. **根因二：EMUI 9.1 原厂 Recovery 格式化 `/data` 导致的 F2FS Superblock 校验冲突（华为 EMUI 9.1 跨机型通病！）**
+   - 使用 **EMUI 9.1 原厂 Recovery** 执行“恢复出厂设置 / 格式化 Data”时，会写入华为新版/私有 F2FS 校验特性位（如 `superblock features = 481: encrypt verity quota_ino`）。
+   - 同时，**未打补丁的上游 `f2fs-tools` / 普通第三方 TWRP** 同样会踩坑：上游 `mkfs.f2fs` 默认写入 `CP_NAT_BITS_FLAG`（NAT Bitmap 检查点页），而华为 EMUI 9.1 的 4.9 内核 F2FS 驱动并不支持该标志位（Iceows 专门通过 `0001-mkfs.f2fs-Remove-NAT-Bitmap-to-support-Huawei-EMUI9-.patch` 移除了该标志）。
+   - 开机时，只读的 EROFS `system` 分区其实已经挂载成功并拉起了 `init`、`surfaceflinger` 和三个转圈动画，但内核在挂载 `userdata` 时直接拒挂：
      ```text
      F2FS-fs (mmcblk0p70): Invalid checksum crc(0x...)
+     F2FS-fs (mmcblk0p70): Can't find valid F2FS filesystem in 1th/2th superblock
      ```
-     随后 `mount_all` 失败 → `/data` 未挂载 → `credstore` 无限崩溃 → 画面永远停在 LineageOS 三个转圈动画。
+     随后 `mount_all` 失败 → `/data` 未挂载 → `credstore`（`chdir: /data/misc/credstore: No such file or directory`）与 `tombstoned`（`failed to open directory: /data/tombstones`，fatal signal 6）陷入无限崩溃 → 画面永远停在 LineageOS 三个转圈动画。
+
+> **⚠️ 跨机型同类问题提示（已在麒麟 970 / 荣耀 Play 上 100% 复现并验证）**：
+> 上述“卡在 LineageOS 三个转圈”的 F2FS Superblock CRC 校验冲突**并非畅享 9 Plus（麒麟 710）个例，而是华为/荣耀 EMUI 9.1 刷 Android 14（`LeaOS 21.0`）时的跨芯片通病**。在同为 EMUI 9.1 的 **荣耀 Play（`COR-AL10` / 麒麟 970 / UFS 存储）** 上刷入同一个 `LeaOS-21.0-20260118-iceows-google-pot.img` 并用原厂 Recovery 清数据后，复现了**完全一致的故障链**。
+>
+> | 对比维度 | 华为畅享 9 Plus（`JKM-AL00b` / 麒麟 710） | 荣耀 Play（`COR-AL10` / 麒麟 970） |
+> | :--- | :--- | :--- |
+> | **存储类型 / `userdata` 设备节点** | eMMC（`/dev/block/mmcblk0p70`，~111 GB） | UFS（`/dev/block/sdd66`，~112 GB） |
+> | **原厂 Recovery 清数据后的报错** | `F2FS-fs (mmcblk0p70): Invalid checksum crc` → `credstore` 崩溃 → 卡三圈 | `F2FS-fs (sdd66): Invalid checksum crc(0x100b1449)` → `credstore` / `tombstoned` 崩溃 → 卡三圈 |
+> | **ROM（`LeaOS-21.0-*-google-pot.img` EROFS）** | 正常挂载 | 正常挂载（实测 `rc=0`，压缩的 `framework.jar` 读取零报错） |
+> | **所需 SHRP（含 Iceows `make_f2fs`）** | `SHRP v3.1 potter`（`make_f2fs 1.13.0`） | `SHRP-Reborn v3.2 charlotte`（`make_f2fs 1.14.0`，麒麟 970 UFS） |
+> | **内核差异** | 需同时刷 Iceows 适配内核 `Kirin710_EMUI9.1_PM` + 重格 F2FS | 仅重格 F2FS 后即在原厂 `9.1.0.350` `4.9.148` 内核（带 212 字节 SELinux 补丁，默认 Enforcing 启动）上 **90 秒直接点亮** |
+>
+> **通用避坑结论**：凡是华为/荣耀 EMUI 9.1 机型刷 `LeaOS 21.0`（Android 14），**不要只靠原厂 Recovery 的“恢复出厂设置”**，必须刷入同 SoC/存储架构的 Iceows 版 SHRP（麒麟 710 eMMC 用 `potter`，麒麟 970 UFS 用 `charlotte`），用内置 Iceows 补丁版 `/system/bin/make_f2fs -f -O encrypt -w 4096 /dev/block/by-name/userdata` 重格（**切勿把本机的扇区数 `233340896` 照抄到其他机型**），并当场 `mount -t f2fs` 验证成功后再重启。
 
 ### 4.4 正确的 `/data` 格式化步骤（在 SHRP 中完成）
 1. 刷完 `recovery_ramdisk` 后，拔线或按键重启进入 **SHRP Recovery**。
 2. 首次进入 SHRP 提示 `Keep System Read Only?` 时，**保持只读即可**（不要随意挂载修改只读的 EROFS `system`）。
 3. 通过 SHRP 内的 `adb shell`，调用 Iceows 定制的 `/system/bin/make_f2fs`（`Ver Iceows (Huawei EMUI9): 1.13.0`）手动重新格式化 `userdata`：
    ```sh
-   # 格式化 userdata（带 encrypt 特性，不带引发冲突的校验特性）
+   # 格式化 userdata（带 encrypt 特性，不带引发冲突的校验特性与 NAT Bitmap）
+   # 注意：233340896 仅适用于畅享 9 Plus（JKM-AL00b）；其他 EMUI 9.1 机型（如荣耀 Play COR-AL10）
+   # 建议省略末尾扇区数让 make_f2fs 自动按分区实际容量格式化，切勿直接照抄。
    /system/bin/make_f2fs -f -O encrypt -w 4096 /dev/block/by-name/userdata 233340896
 
    # 实测直接挂载验证（必须返回 0 且容量正常约 111G）
@@ -219,7 +236,7 @@ fastboot flash recovery_ramdisk recovery.img
 | 短接后显示 `USB SER` (`VID_12D1&PID_3609`) 无驱动 | 未自动匹配 `HUAWEI USB COM 1.0` | 用 SetupAPI `DiInstallDevice` 绑定 WHQL 签名的 `hw_quser.inf` |
 | SWTP 报 `Failed to send partition header` | EMUI 9.1 安全补丁 `2021-03-01` 已封堵 SWTP | 放弃 SWTP，改用拆机硬件短接 + `Kirin-Tool v2.4.2` |
 | `Kirin-Tool` 报 `Access to path ...\dload is denied` | 进程工作目录（CWD）不在 `Kirin-Tool` 文件夹 | 通过快捷方式指定 `WorkingDirectory` 为 `Kirin-Tool` 目录后运行 |
-| 刷完 A14 卡在 LineageOS 三个转圈无限重启 | 原厂内核缺 A14 补丁 + 原厂 Recovery 的 F2FS Superblock CRC 校验冲突 | 刷 Iceows A14 内核 + 刷 SHRP，用 SHRP 内 Iceows `make_f2fs -f -O encrypt -w 4096` 重格 `userdata` |
+| 刷完 A14 卡在 LineageOS 三个转圈无限重启（麒麟 970 / 荣耀 Play 同款复现） | EMUI 9.1 原厂 Recovery 的 F2FS Superblock CRC 校验冲突（`Invalid checksum crc` → `/data` 未挂载 → `credstore` 崩溃），麒麟 710 还叠加原厂内核缺 A14 补丁 | 刷同架构 Iceows 版 SHRP（710 eMMC 用 `potter`，970 UFS 用 `charlotte`），用内置 Iceows `make_f2fs -f -O encrypt -w 4096` 重格 `userdata` 并实测 `mount -t f2fs`；麒麟 710 需同时刷 Iceows A14 内核 |
 | 误下载 `1-Huawei-DataPrep-A14-AB-v1.0-signed.zip` | 该包仅适用于 `hi6250`（麒麟 659） | **严禁刷入**麒麟 710 设备 |
 | 首次进入系统卡在“正在准备我的设备” | 国内无外网，Google SetupWizard 联网超时 | 离线跳过开机向导，进桌面先用 ADB 装代理再登录 Google |
 | Play 商店点击 Chrome“安装”完全无反应 | 首次登录后台自更新导致透明 `SheetUiBuilderHostActivity` 卡死挡住点击 | 划掉后台或执行 `adb shell am force-stop com.android.vending` 后重开即可 |
