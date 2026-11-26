@@ -22,12 +22,14 @@
 
 ## 1. 实测可用软件与镜像清单
 
-| 用途 | 文件 / 工具 | 大小（实测） | 目标分区 / 说明 | 公开来源 |
+> **高速镜像下载（GitHub Releases）**：如果 SourceForge 下载限速严重，可直接前往本仓库 **[Releases (`v1.0-mirror`)](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/tag/v1.0-mirror)** 下载已校验镜像包（含 `SHA256SUMS.txt`、预解压 `recovery.img`、无谷歌版与 A13 备选包、Permissive/Enforcing 双版内核）。
+
+| 用途 | 文件 / 工具 | 大小（实测） | 目标分区 / 说明 | 公开来源与高速镜像 |
 | :--- | :--- | :--- | :--- | :--- |
-| BL 永久解锁 | `Kirin-Tool v2.4.2` | ~82.7 MB | 需 `.NET 8 Desktop Runtime` | [kethily-daniel/Kirin-Tool](https://github.com/kethily-daniel/Kirin-Tool) |
-| Android 14 ROM（带 GApps） | `LeaOS-21.0-20260118-iceows-google-pot.img` | `2,197,798,912` B (~2.05 GB) | 刷入 `system`（EROFS，可放入 `2392 MB` 的 `system_a`） | [SourceForge: altairfr-huawei / LeaOS-21.0](https://sourceforge.net/projects/altairfr-huawei/files/LeaOS-21.0/LeaOS-21.0-20260118-iceows-google-pot.img.xz/download) |
-| A14 适配内核（Permissive） | `Kirin710_EMUI9.1_PM-2025.11.16-04_35.img` | `13,094,912` B (~12.5 MB) | 刷入 `kernel`（4.9.148+ 含 Android 14 必需补丁） | [Iceows/android_kernel_huawei_kirin710-9](https://github.com/Iceows/android_kernel_huawei_kirin710-9/releases) |
-| 第三方 Recovery | `SHRP_v3.1_stable-Unofficial_potter-1773176050.zip`（内含 `recovery.img`） | `27,146,240` B (~25.9 MB) | 刷入 `recovery_ramdisk`（内含 Iceows 定制 `make_f2fs`） | [SourceForge: altairfr-huawei / SHRP-Recovery](https://sourceforge.net/projects/altairfr-huawei/files/SHRP-Recovery/SHRP_v3.1_stable-Unofficial_potter-1773176050.zip/download) |
+| BL 永久解锁 | `Kirin-Tool v2.4.2` | ~82.7 MB | 需 `.NET 8 Desktop Runtime` | [GitHub 原仓库](https://github.com/kethily-daniel/Kirin-Tool) \| [Release 镜像](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/Kirin-Tool-v2.4.2.zip) |
+| Android 14 ROM（带 GApps） | `LeaOS-21.0-20260118-iceows-google-pot.img` | 压缩包：`1,357,554,880` B<br>解压后：`2,197,798,912` B (~2.05 GiB) | 刷入 `system`（EROFS，可放入 `2392 MB` 的 `system_a`） | [SourceForge](https://sourceforge.net/projects/altairfr-huawei/files/LeaOS-21.0/LeaOS-21.0-20260118-iceows-google-pot.img.xz/download) \| [GitHub 镜像](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/LeaOS-21.0-20260118-iceows-google-pot.img.xz) |
+| A14 适配内核（Permissive） | `Kirin710_EMUI9.1_PM-2025.11.16-04_35.img` | `13,094,912` B (~12.5 MB) | 刷入 `kernel`（4.9.148+ 含 Android 14 必需补丁） | [Iceows GitHub](https://github.com/Iceows/android_kernel_huawei_kirin710-9/releases) \| [GitHub 镜像](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/Kirin710_EMUI9.1_PM-2025.11.16-04_35.img) |
+| 第三方 Recovery | `SHRP_v3.1_stable-Unofficial_potter-1773176050.zip`（内含 `recovery.img`） | `27,146,240` B (~25.9 MB) | 刷入 `recovery_ramdisk`（内含 Iceows 定制 `make_f2fs`） | [SourceForge](https://sourceforge.net/projects/altairfr-huawei/files/SHRP-Recovery/SHRP_v3.1_stable-Unofficial_potter-1773176050.zip/download) \| [镜像 (zip)](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/SHRP_v3.1_stable-Unofficial_potter-1773176050.zip) \| [预解压 `.img`](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/SHRP_v3.1_potter-recovery.img) |
 | 原厂底包备份 | `stock_KERNEL.img` / `stock_RECOVERY_RAMDISK.img` | 24 MB / 32 MB | 从官方 `UPDATE.APP` 提取留存，用于随时救砖回退 | 官方 EMUI 9.1 固件包 |
 | 代理工具 | `FlClash-0.9.4-android-arm64-v8a.apk` | ~58.0 MB | `arm64-v8a` 版本，支持 URL Scheme 一键导入配置 | [chen08209/FlClash](https://github.com/chen08209/FlClash/releases) |
 | 中文输入法 | `doubaoime_v1.0.0_official.apk` | ~139.4 MB | 豆包手机输入法官方包 | 字节跳动官方 CDN |
