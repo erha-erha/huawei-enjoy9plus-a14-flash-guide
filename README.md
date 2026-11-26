@@ -4,35 +4,46 @@
 
 > **Target Device**: Huawei Enjoy 9 Plus (`JKM-AL00b` / `JKM-AL20`, HiSilicon Kirin 710, `arm64-v8a`, `system_a = 2392 MB`, `userdata = mmcblk0p70 / 111 GB`)  
 > **Starting Firmware**: Stock EMUI `9.1.0.240(C00E235R4P3)` (Android security patch `2021-03-01`)  
-> **Verified Outcome**: Permanently unlocked Bootloader + **Android 14** (`LeaOS 21.0` Google / LineageOS 21) + Iceows A14 Kirin 710 kernel + `SHRP v3.1` Recovery + working 4G LTE voice/SMS/data + Google Play & core Google apps (Chrome, Gmail, YouTube, Maps, Photos, Drive, Translate).
+> **Verified Outcome**: Permanently unlocked Bootloader + **Android 14** (`LeaOS 21.0` Google / LineageOS 21) + Iceows A14 Kirin 710 kernel + `SHRP v3.1` Recovery + working 4G LTE voice/SMS/data + Google Play & core Google apps + **Magisk v30.7**, **Kirin 710 + Mali-G51 60Hz smoothness & 2 GiB LZ4 ZRAM module (`enjoy9plus_smooth`)**, runaway `dump-logs` fix, and **wired USB ADB (`ffs.adb -12 ENOMEM`) recovery**.
 
 ---
 
 ## Table of Contents
 
-- [1. Verified Images & Tools](#1-verified-images--tools)
+- [1. Verified Images, Modules & Tools](#1-verified-images-modules--tools)
 - [2. Phase 1: Windows 11 Drivers, ADB & USB COM 1.0 Pitfalls](#2-phase-1-windows-11-drivers-adb--usb-com-10-pitfalls)
 - [3. Phase 2: Permanent Bootloader Unlock (Why SWTP Fails + Hardware Testpoint)](#3-phase-2-permanent-bootloader-unlock-why-swtp-fails--hardware-testpoint)
 - [4. Phase 3: Stock Partition Backup & Flashing Android 14 (Fixing the Bootloop)](#4-phase-3-stock-partition-backup--flashing-android-14-fixing-the-bootloop)
 - [5. Phase 4: First Boot, Proxy Setup, Play Store Freeze & SIM Card Hot-Plug Fix](#5-phase-4-first-boot-proxy-setup-play-store-freeze--sim-card-hot-plug-fix)
-- [6. Phase 5: Post-Flash Windows 11 Cleanup (Re-enabling Memory Integrity)](#6-phase-5-post-flash-windows-11-cleanup-re-enabling-memory-integrity)
-- [7. Troubleshooting Quick Reference](#7-troubleshooting-quick-reference)
+- [6. Phase 5: Post-Flash Optimization (Magisk v30.7, Kirin 710 60Hz Smoothness + 2 GiB ZRAM, `dump-logs` & Wired USB ADB Fix)](#6-phase-5-post-flash-optimization-magisk-v307-kirin-710-60hz-smoothness--2-gib-zram-dump-logs--wired-usb-adb-fix)
+- [7. Phase 6: Post-Flash Windows 11 Cleanup (Re-enabling Memory Integrity)](#7-phase-6-post-flash-windows-11-cleanup-re-enabling-memory-integrity)
+- [8. Troubleshooting Quick Reference](#8-troubleshooting-quick-reference)
+- [9. Credits, Copyright & Upstream Attribution](#9-credits-copyright--upstream-attribution)
 
 ---
 
-## 1. Verified Images & Tools
+## 1. Verified Images, Modules & Tools
 
-> **Fast Download Mirror (GitHub Releases)**: If SourceForge is slow or throttled in your region, download the verified mirror pack (including `SHA256SUMS.txt`, pre-extracted `recovery.img`, Vanilla/A13 fallback ROMs, and both Permissive/Enforcing Kirin 710 kernels) directly from **[Releases (`v1.0-mirror`)](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/tag/v1.0-mirror)**.
+> **Fast Download Mirrors (GitHub Releases)**:
+> - **Core ROM, Kernel, Unlock & Recovery Pack**: **[Releases (`v1.0-mirror`)](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/tag/v1.0-mirror)** (`Kirin-Tool v2.4.2`, `LeaOS 21.0/20.0`, `Kirin710_EMUI9.1` kernels, `SHRP v3.1 potter`, `SHA256SUMS.txt`).
+> - **Root, Smoothness, ZRAM & Tools Pack (Enjoy 9 Plus / Kirin 710 ONLY)**: **[Releases (`v1.1-optimization`)](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/tag/v1.1-optimization)** (`enjoy9plus_smooth`, `JKM-AL00b 9.1.0.240` Magisk v30.7 recovery image, plus GPLv3/Apache-2.0 upstream mirrors).
+> - **⚠️ Hardware Separation Warning**: All modules in this repo target **Huawei Enjoy 9 Plus (`JKM-AL00b` / Kirin 710 / Mali-G51 / 4 GB RAM)** ONLY. For **Honor Play (`COR-AL10` / Kirin 970 / Mali-G72 / 6 GB RAM)**, use [honor-play-a14-flash-guide](https://github.com/erha-erha/honor-play-a14-flash-guide). `enjoy9plus_smooth` verifies `ro.hardware == kirin710` inside `customize.sh` to prevent cross-flashing.
 
-| Role | Artifact / Tool | Verified Size | Target Partition / Notes | Source & Fast Mirror |
+| Role | Artifact / Tool | Verified Size | Target Partition / Notes | Upstream Source & Fast Mirror |
 | :--- | :--- | :--- | :--- | :--- |
-| Permanent BL Unlock | `Kirin-Tool v2.4.2` | ~82.7 MB | Requires `.NET 8 Desktop Runtime` | [GitHub Upstream](https://github.com/kethily-daniel/Kirin-Tool) \| [Release Mirror](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/Kirin-Tool-v2.4.2.zip) |
-| Android 14 ROM (GApps) | `LeaOS-21.0-20260118-iceows-google-pot.img` | Compressed: `1,357,554,880` B<br>Extracted: `2,197,798,912` B (~2.05 GiB) | Flash to `system` (EROFS; fits inside `2392 MB` `system_a`) | [SourceForge](https://sourceforge.net/projects/altairfr-huawei/files/LeaOS-21.0/LeaOS-21.0-20260118-iceows-google-pot.img.xz/download) \| [GitHub Mirror](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/LeaOS-21.0-20260118-iceows-google-pot.img.xz) |
-| A14 Patched Kernel (Permissive) | `Kirin710_EMUI9.1_PM-2025.11.16-04_35.img` | `13,094,912` B (~12.5 MB) | Flash to `kernel` (`4.9.148+` with required Android 14 patches) | [Iceows GitHub](https://github.com/Iceows/android_kernel_huawei_kirin710-9/releases) \| [GitHub Mirror](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/Kirin710_EMUI9.1_PM-2025.11.16-04_35.img) |
-| Custom Recovery | `SHRP_v3.1_stable-Unofficial_potter-1773176050.zip` (`recovery.img`) | `27,146,240` B (~25.9 MB) | Flash to `recovery_ramdisk` (includes Iceows patched `make_f2fs`) | [SourceForge](https://sourceforge.net/projects/altairfr-huawei/files/SHRP-Recovery/SHRP_v3.1_stable-Unofficial_potter-1773176050.zip/download) \| [Mirror (zip)](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/SHRP_v3.1_stable-Unofficial_potter-1773176050.zip) \| [Pre-extracted `.img`](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/SHRP_v3.1_potter-recovery.img) |
+| Permanent BL Unlock | `Kirin-Tool v2.4.2` | ~82.7 MB | Requires `.NET 8 Desktop Runtime` | [@kethily-daniel/Kirin-Tool](https://github.com/kethily-daniel/Kirin-Tool) \| [v1.0 Mirror](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/Kirin-Tool-v2.4.2.zip) |
+| Android 14 ROM (GApps) | `LeaOS-21.0-20260118-iceows-google-pot.img` | Compressed: `1,357,554,880` B<br>Extracted: `2,197,798,912` B (~2.05 GiB) | Flash to `system` (EROFS; fits inside `2392 MB` `system_a`) | [@Iceows SourceForge](https://sourceforge.net/projects/altairfr-huawei/files/LeaOS-21.0/LeaOS-21.0-20260118-iceows-google-pot.img.xz/download) \| [v1.0 Mirror](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/LeaOS-21.0-20260118-iceows-google-pot.img.xz) |
+| A14 Patched Kernel (Permissive) | `Kirin710_EMUI9.1_PM-2025.11.16-04_35.img` | `13,094,912` B (~12.5 MB) | Flash to `kernel` (`4.9.148+` with required Android 14 patches) | [@Iceows Kirin710 Kernel](https://github.com/Iceows/android_kernel_huawei_kirin710-9/releases) \| [v1.0 Mirror](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/Kirin710_EMUI9.1_PM-2025.11.16-04_35.img) |
+| Custom Recovery (Kirin 710 eMMC) | `SHRP_v3.1_stable-Unofficial_potter-1773176050.zip` (`recovery.img`) | `27,146,240` B (~25.9 MB) | Flash to `recovery_ramdisk` (includes Iceows patched `make_f2fs 1.13.0`) | [@Iceows SourceForge](https://sourceforge.net/projects/altairfr-huawei/files/SHRP-Recovery/SHRP_v3.1_stable-Unofficial_potter-1773176050.zip/download) \| [v1.0 Mirror (zip)](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/SHRP_v3.1_stable-Unofficial_potter-1773176050.zip) \| [Pre-extracted `.img`](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/SHRP_v3.1_potter-recovery.img) |
+| Magisk Root (EMUI `9.1.0.240`) | `Magisk-v30.7.apk` & `JKM-AL00b_9.1.0.240_recovery_ramdisk_magisk307.img` | APK: `11.6 MB`<br>Image: `33,554,432` B | Flash patched image to `recovery_ramdisk` (**ONLY** for `JKM-AL00b 9.1.0.240`, `RECOVERYMODE=true`) | [@topjohnwu/Magisk](https://github.com/topjohnwu/Magisk/releases) \| [v1.1 APK](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.1-optimization/Magisk-v30.7.apk) \| [v1.1 `.img`](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.1-optimization/JKM-AL00b_9.1.0.240_recovery_ramdisk_magisk307.img) |
+| 60Hz Smoothness + 2 GiB ZRAM (Kirin 710) | `enjoy9plus_smooth-v1.0.0.zip` ([source](modules/enjoy9plus_smooth/)) | `2,864` B | Flash in Magisk Manager; Kirin 710 + Mali-G51 tuning, 2 GiB LZ4 ZRAM, stops runaway `dump-logs` | [v1.1 Release](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.1-optimization/enjoy9plus_smooth-v1.0.0.zip) |
+| Wired USB ADB Recovery Script | `scripts/fix_wired_adb_ffs.sh` ([source](scripts/fix_wired_adb_ffs.sh)) | `1.1 KB` | Fixes Linux 4.9 `ffs.adb` `-12 (Out of memory)` USB Gadget deadlock live via Wireless ADB | In this repo |
+| Open-Source Reboot Tool | `RebootNya_1.9.0.apk` | `3.01 MB` | One-tap **Soft Reboot** (`setprop ctl.restart zygote`) keeping Magisk & ZRAM alive | [@daisukiKaffuChino/RebootNya](https://github.com/daisukiKaffuChino/RebootNya/releases) \| [v1.1 Mirror](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.1-optimization/RebootNya_1.9.0.apk) |
+| Optional Runtime Tombstone | `LSPosed-v1.11.0-7209-zygisk-release.zip` & `Frozen8.3.0.zip` | `6.79 MB` / `3.04 MB` | iOS-style background suspension (`GLOBAL_SIGSTOP`, compatible with Linux 4.9 + A14) | [@JingMatrix/Vector](https://github.com/JingMatrix/Vector/releases) \| [@MoWei-2077/FrozenVS](https://github.com/MoWei-2077/FrozenVS) \| [v1.1 Mirrors](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/tag/v1.1-optimization) |
+| Optional Play Integrity Modules | `PlayIntegrityFork-v19.zip`, `TEESimulator`, `TrickyAddonModule`, `KsuWebUI` | See `SHA256SUMS.txt` | GPLv3/Apache-2.0 mirrors in `v1.1`; obtain `TrickyStore` / `KeyAttestation` directly from upstream | [@osm0sis](https://github.com/osm0sis/PlayIntegrityFork) \| [@JingMatrix](https://github.com/JingMatrix/TEESimulator) \| [@KOWX712](https://github.com/KOWX712/Tricky-Addon-Update-Target-List) \| [@5ec1cff/TrickyStore](https://github.com/5ec1cff/TrickyStore) \| [@vvb2060/KeyAttestation](https://github.com/vvb2060/KeyAttestation) |
+| Proxy Client (Optional) | `FlClash-0.9.4-android-arm64-v8a.apk` | `60.86 MB` | `arm64-v8a` build; supports `flclash://` deep-link import | [@chen08209/FlClash](https://github.com/chen08209/FlClash/releases) \| [v1.1 Mirror](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.1-optimization/FlClash-0.9.4-android-arm64-v8a.apk) |
 | Stock Rescue Backups | `stock_KERNEL.img` / `stock_RECOVERY_RAMDISK.img` | 24 MB / 32 MB | Extracted from official EMUI 9.1 `UPDATE.APP` before flashing | Stock EMUI 9.1 firmware |
-| Proxy Client (Optional) | `FlClash-0.9.4-android-arm64-v8a.apk` | ~58.0 MB | `arm64-v8a` build; supports `flclash://` deep-link import | [chen08209/FlClash](https://github.com/chen08209/FlClash/releases) |
-| Chinese IME (Optional) | `doubaoime_v1.0.0_official.apk` | ~139.4 MB | Official ByteDance CDN release | Official CDN |
+| Chinese IME (Optional) | `doubaoime_v1.0.0_official.apk` | ~139.4 MB | Proprietary app — download from official CDN (not mirrored) | Official CDN |
 
 > **⚠️ CRITICAL WARNING — DO NOT FLASH THE WRONG PREP ZIP**: `1-Huawei-DataPrep-A14-AB-v1.0-signed.zip` hosted under LeaOS-A14 on SourceForge is built for **`hi6250` (Kirin 659)**, **NOT Kirin 710**. Never flash it on `JKM-AL00b` / Kirin 710 devices.
 
@@ -212,7 +223,50 @@ Two separate issues combined to cause an endless bootloop on the 3-circle Lineag
 
 ---
 
-## 6. Phase 5: Post-Flash Windows 11 Cleanup (Re-enabling Memory Integrity)
+## 6. Phase 5: Post-Flash Optimization (Magisk v30.7, Kirin 710 60Hz Smoothness + 2 GiB ZRAM, `dump-logs` & Wired USB ADB Fix)
+
+### 6.1 Magisk v30.7 (`recovery_ramdisk`) & Zero-Button Daily Restarts (`RebootNya`)
+- On EMUI 9.1, Magisk patches `recovery_ramdisk` with `RECOVERYMODE=true` (flash `JKM-AL00b_9.1.0.240_recovery_ramdisk_magisk307.img` **only** on `JKM-AL00b 9.1.0.240`, or patch your own stock `recovery_ramdisk.img` in `Magisk-v30.7.apk`).
+- **Cold-booting with Magisk**: Unplug USB → power off → hold **Volume Up + Power** until the unlocked warning screen appears → keep holding **Volume Up** until **`Your device is booting now...`** appears (~5s), then release immediately.
+- **Daily Zero-Button Restarts**: Install [`RebootNya_1.9.0.apk`](https://github.com/daisukiKaffuChino/RebootNya) and use **Soft Reboot** (`setprop ctl.restart zygote`) whenever reloading modules or system tweaks — completes in ~6–10 seconds with zero cable unplugging and keeps Magisk + ZRAM intact.
+
+### 6.2 Kirin 710 + Mali-G51 60Hz Smoothness, 2 GiB LZ4 ZRAM & Stopping Runaway `dump-logs` (`enjoy9plus_smooth`)
+- **Hardware Baseline**: Enjoy 9 Plus (`JKM-AL00b` / `POT-LX1`) has a `60.00 Hz` LCD, Kirin 710 (`4×A53 @ 1.71 GHz + 4×A73 @ 2.19 GHz`, Huawei `schedutil`), Mali-G51 MP4 (`mali_ondemand`, `413–999 MHz`), and `4 GB` RAM (`3.6 GiB` usable, eMMC 5.1).
+- Out of the box on `LeaOS 21.0`, **home screen (`Launcher3`) scrolling measured only ~19 FPS (`53 ms` median, `54.6%` janky frames, `26` missed VSyncs)** due to 5 verified bottlenecks fixed in [`enjoy9plus_smooth-v1.0.0.zip`](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.1-optimization/enjoy9plus_smooth-v1.0.0.zip) ([source](modules/enjoy9plus_smooth/)):
+  1. **Broken `LeaOS` `/system/build.prop` HWUI/EGL Flags**: Overrode `hwui.disable_vsync=false`, `debug.hwui.use_buffer_age=true`, `debug.egl.profiler=0`, `debug.hwui.profile=false` via Magisk `system.prop` **while preserving Huawei HWC 2.2's `debug.sf.disable_backpressure=1` & `debug.sf.latch_unsignaled=1`** (note: requires a full Magisk boot or `setprop ctl.restart surfaceflinger` so `zygote` reloads `libhwui` cleanly!).
+  2. **Runaway `dump-logs` Service Burning 100% CPU + Hammering eMMC Flash**: `/system/etc/init/debug-log-gsi.rc` runs `logcat -b all -f /splash2/logcat-normal.txt -v threadtime` in a restart loop, saturating a CPU core and writing tens of MBs to `/splash2`. Stopped automatically at boot (`setprop ctl.stop dump-logs`).
+  3. **Kirin 710 `schedutil` Big-Core Lag**: Enabled `fast_ramp_up=1` (was `0`), disabled `fast_ramp_down=0`, set `io_is_busy=1`, raised `hispeed_freq` to `1671 MHz` (`policy4`) / `1440 MHz` (`policy0`), and cut big-core ramp delay from `118 ms` to `10–15 ms`.
+  4. **Mali-G51 `mali_ondemand` Tuning**: Enabled `animation_boost=1`, `hispeed_freq=682 MHz`, `vsync_upthreshold=50`, and raised wake floor from `413 MHz` to `567 MHz` (measured SoC temp `25.4℃`).
+  5. **2 GiB LZ4 ZRAM + Disable Window Blurs**: Auto-enables `2 GiB` LZ4 ZRAM (`2,147,483,648` B, `swapon -p 100`, `vm.page-cluster=0`, `vm.swappiness=80`) to eliminate 4 GB RAM thrashing, disables GPU window blurs (`disable_window_blurs=1`), and sets `0.5x` animation scales.
+  - *(Optional)* You can also pair `LSPosed v1.11.0` + `Frozen 8.3.0` (`GLOBAL_SIGSTOP` mode) for iOS-style background app suspension (see Phase 6.3 of [honor-play-a14-flash-guide](https://github.com/erha-erha/honor-play-a14-flash-guide#73-true-ios-style-runtime-tombstone-lsposed-v1110--frozen-830-on-android-14--linux-49)).
+
+| Measured Metric (`dumpsys gfxinfo`, 60Hz) | Before Tuning | After `enjoy9plus_smooth` |
+| :--- | :--- | :--- |
+| Launcher3 Jank / Missed VSyncs | `54.6%` / `26` missed | **`8.9%–10.6%` / `0–2` missed** |
+| Launcher3 Median Frame / `DequeueBuffer` | `53 ms` / `25–30 ms` | **`18–26 ms` / `0.04 ms`** |
+| Settings Median Frame / Jank | `15 ms` (Legacy `35.2%`) | **`15–16 ms` (`0.8%–1.6%`, `0` missed)** |
+| Runaway `dump-logs` CPU Usage | `100%` (1 full core) | **`0%` (`stopped`)** |
+
+### 6.3 Root-Cause Fix: Wired USB Debugging Vanishes (`ffs.adb` `-12 Out of memory` Deadlock)
+- **Symptom**: Phone shows charging over USB (`power_supply/USB/type=USB`), yet Windows Device Manager sees no Huawei/ADB device at all even across different USB ports — while Wireless Debugging works fine.
+- **Root Cause (`dmesg` + `/config/usb_gadget/g1`)**:
+  - Binding pure `mtp.gs0` immediately enumerates `USB\VID_12D1&PID_107E` at `high-speed`, proving the cable and PC port are healthy.
+  - `persist.sys.usb.config` was stuck on Huawei factory `manufacture,adb`, and Linux `4.9`'s `ffs.adb` FunctionFS instance entered a corrupted state after long uptime/replugs, looping every second:
+    ```text
+    configfs_composite_bind:use_os_desc 0
+    configfs-gadget ff100000.dwc3: failed to start g1: -12
+    Unable to write to file '/config/usb_gadget/g1/UDC': Out of memory
+    ```
+- **Live Zero-Reboot Fix** (connect via Wireless ADB and run [`scripts/fix_wired_adb_ffs.sh`](scripts/fix_wired_adb_ffs.sh) detached via `setsid` so stopping `adbd` does not kill the script mid-run):
+  ```powershell
+  adb -s <IP:PORT> push scripts/fix_wired_adb_ffs.sh /data/local/tmp/
+  adb -s <IP:PORT> shell "su -c 'setsid sh /data/local/tmp/fix_wired_adb_ffs.sh </dev/null >/data/local/tmp/usb_fix.log 2>&1 &'"
+  ```
+  It cleanly unbinds `UDC`, unmounts `/dev/usb-ffs/adb`, recreates `/config/usb_gadget/g1/functions/ffs.adb`, remounts `functionfs` (`uid=2000,gid=2000`), sets `persist.sys.usb.config=adb`, and rebinds `ff100000.dwc3` → Windows immediately enumerates `USB\VID_12D1&PID_103A` (`high-speed / CONFIGURED`).
+
+---
+
+## 7. Phase 6: Post-Flash Windows 11 Cleanup (Re-enabling Memory Integrity)
 
 Once flashing and USB debugging are finished, remove the legacy 2016 Huawei kernel drivers so you can safely re-enable Windows 11 **Memory Integrity (HVCI)**:
 
@@ -228,7 +282,7 @@ Once flashing and USB debugging are finished, remove the legacy 2016 Huawei kern
 
 ---
 
-## 7. Troubleshooting Quick Reference
+## 8. Troubleshooting Quick Reference
 
 | Symptom / Error | Verified Root Cause | Solution |
 | :--- | :--- | :--- |
@@ -242,3 +296,27 @@ Once flashing and USB debugging are finished, remove the legacy 2016 Huawei kern
 | SetupWizard stuck on *"Getting your phone ready..."* | Restricted internet prevents Google check-in | Finish SetupWizard offline, install proxy via ADB, then sign in |
 | Tapping **Install** on Chrome in Play Store does nothing | Invisible `SheetUiBuilderHostActivity` stuck during background Play Store/GMS self-update | Force-stop Play Store (`adb shell am force-stop com.android.vending`) and reopen |
 | SIM card shows `ABSENT` / `+CME ERROR: 10` after hot-plug | Tray eject powers off SIM (`ro.odm.pwroff_card_if_tray_out=true`); AOSP lacks EMUI's `AT^HVSST=1,1` re-power flow | **Reboot with the SIM card inserted** (power off or reboot whenever swapping SIMs) |
+| Home screen sluggish (~19 FPS) & 100% CPU `logcat-normal.txt` | LeaOS `hwui.disable_vsync=true` / `use_buffer_age=false`, conservative Kirin 710 `schedutil` (`fast_ramp_up=0`), runaway `dump-logs`, and 0 Swap on 4 GB RAM | Flash `enjoy9plus_smooth-v1.0.0.zip` in Magisk and reboot (or `ctl.restart surfaceflinger`) |
+| Wired USB only charges; PC sees no ADB (`failed to start g1: -12`) | Linux 4.9 `ffs.adb` FunctionFS state corrupted (`-ENOMEM` on `UDC` bind) + `persist.sys.usb.config=manufacture,adb` | Run [`scripts/fix_wired_adb_ffs.sh`](scripts/fix_wired_adb_ffs.sh) detached via `setsid` over Wireless ADB |
+
+---
+
+## 9. Credits, Copyright & Upstream Attribution
+
+All third-party open-source files mirrored in GitHub Releases are **unmodified official upstream builds** provided strictly for community download convenience with full credit to their original authors and licenses. Repositories without an explicit redistribution license (e.g., `TrickyStore`, `KeyAttestation`) and proprietary apps (`doubaoime`) are linked directly to their upstream sources instead of being mirrored.
+
+| Project / Component | Original Author(s) | Upstream Repository / Link | License |
+| :--- | :--- | :--- | :--- |
+| **LeaOS 21.0 / 20.0**, **Kirin 710 A14 Kernel** & **EMUI 9 F2FS `make_f2fs` Patch** | **[@Iceows](https://github.com/Iceows)** (AltairFR) | [Iceows/huawei-creator](https://github.com/Iceows/huawei-creator) \| [Iceows/android_kernel_huawei_kirin710-9](https://github.com/Iceows/android_kernel_huawei_kirin710-9) \| [SourceForge](https://sourceforge.net/projects/altairfr-huawei/) | Open Source (LineageOS / GPL / Apache-2.0) |
+| **Kirin-Tool v2.4.2** | **[@kethily-daniel](https://github.com/kethily-daniel)** | [kethily-daniel/Kirin-Tool](https://github.com/kethily-daniel/Kirin-Tool) | Open Source |
+| **SHRP v3.1 (`potter`)** | **Team SHRP** & **[@Iceows](https://github.com/Iceows)** | [SHRP-Reborn](https://github.com/SHRP-Reborn) \| [SourceForge](https://sourceforge.net/projects/altairfr-huawei/files/SHRP-Recovery/) | GPL-3.0 |
+| **Magisk v30.7** | **[@topjohnwu](https://github.com/topjohnwu)** | [topjohnwu/Magisk](https://github.com/topjohnwu/Magisk) | GPL-3.0 |
+| **RebootNya v1.9.0** | **[@daisukiKaffuChino](https://github.com/daisukiKaffuChino)** | [daisukiKaffuChino/RebootNya](https://github.com/daisukiKaffuChino/RebootNya) | Apache-2.0 |
+| **LSPosed v1.11.0 (Zygisk)** & **TEESimulator** | **[@JingMatrix](https://github.com/JingMatrix)** & Contributors | [JingMatrix/Vector](https://github.com/JingMatrix/Vector) \| [JingMatrix/TEESimulator](https://github.com/JingMatrix/TEESimulator) | GPL-3.0 |
+| **Frozen 8.3.0 (Optional Tombstone)** | **[@MoWei-2077](https://github.com/MoWei-2077)** (forked from **[@jark006](https://github.com/jark006)**) | [MoWei-2077/FrozenVS](https://github.com/MoWei-2077/FrozenVS) \| [jark006/freezeitVS](https://github.com/jark006/freezeitVS) | GPL-3.0 |
+| **PlayIntegrityFork** | **[@osm0sis](https://github.com/osm0sis)** | [osm0sis/PlayIntegrityFork](https://github.com/osm0sis/PlayIntegrityFork) | GPL-3.0 |
+| **TrickyStore** & **KsuWebUIStandalone** | **[@5ec1cff](https://github.com/5ec1cff)** | [5ec1cff/TrickyStore](https://github.com/5ec1cff/TrickyStore) \| [5ec1cff/KsuWebUIStandalone](https://github.com/5ec1cff/KsuWebUIStandalone) | Upstream / GPL-3.0 |
+| **Tricky-Addon-Update-Target-List** | **[@KOWX712](https://github.com/KOWX712)** | [KOWX712/Tricky-Addon-Update-Target-List](https://github.com/KOWX712/Tricky-Addon-Update-Target-List) | Apache-2.0 |
+| **KeyAttestation** | **[@vvb2060](https://github.com/vvb2060)** | [vvb2060/KeyAttestation](https://github.com/vvb2060/KeyAttestation) | Upstream |
+| **FlClash v0.9.4** | **[@chen08209](https://github.com/chen08209)** | [chen08209/FlClash](https://github.com/chen08209/FlClash) | GPL-3.0 |
+| **Sibling Guide (Honor Play / Kirin 970)** | **[@erha-erha](https://github.com/erha-erha)** | [erha-erha/honor-play-a14-flash-guide](https://github.com/erha-erha/honor-play-a14-flash-guide) | Open Source |

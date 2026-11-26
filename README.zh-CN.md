@@ -4,35 +4,46 @@
 
 > **目标设备**：华为畅享 9 Plus（型号 `JKM-AL00b` / `JKM-AL20`，SoC：海思麒麟 710，`arm64-v8a`，`system_a = 2392 MB`，`userdata = mmcblk0p70 / 111 GB`）  
 > **起始系统**：EMUI `9.1.0.240(C00E235R4P3)`（安全补丁 `2021-03-01`）  
-> **最终成果**：永久解锁 Bootloader + `Android 14`（`LeaOS 21.0` Google 版，基于 LineageOS 21）+ Iceows A14 适配内核 + `SHRP v3.1` Recovery + 4G LTE 蜂窝语音/短信/数据 + FlClash + 豆包输入法 + Google 全家桶（Chrome / Gmail / YouTube / Maps / Photos / Drive / Translate）全部正常运行。
+> **最终成果**：永久解锁 Bootloader + `Android 14`（`LeaOS 21.0` Google 版，基于 LineageOS 21）+ Iceows A14 适配内核 + `SHRP v3.1` Recovery + 4G LTE 蜂窝语音/短信/数据 + Google 全家桶 + **`Magisk v30.7`** + **麒麟 710 + Mali-G51 60Hz 流畅度与 2 GiB LZ4 ZRAM 专项模块（`enjoy9plus_smooth`）** + 后台 `dump-logs` 止损与 **有线 USB 调试（`ffs.adb -12 ENOMEM`）死锁修复**。
 
 ---
 
 ## 目录
 
-- [1. 实测可用软件与镜像清单](#1-实测可用软件与镜像清单)
+- [1. 实测可用软件、模块与镜像清单](#1-实测可用软件模块与镜像清单)
 - [2. 阶段一：Windows 11 驱动与 ADB/COM 口排坑](#2-阶段一windows-11-驱动与-adbcom-口排坑)
 - [3. 阶段二：Bootloader 永久解锁（SWTP 失效与硬件短接）](#3-阶段二bootloader-永久解锁swtp-失效与硬件短接)
 - [4. 阶段三：备份原厂分区 + 刷入 Android 14（解决三圈无限重启）](#4-阶段三备份原厂分区--刷入-android-14解决三圈无限重启)
 - [5. 阶段四：国内无外网初始化、代理配置、Google 套件与 SIM 卡排坑](#5-阶段四国内无外网初始化代理配置google-套件与-sim-卡排坑)
-- [6. 阶段五：刷机收尾（清理旧版驱动、恢复 Win11 内存完整性）](#6-阶段五刷机收尾清理旧版驱动恢复-win11-内存完整性)
-- [7. 踩坑速查表](#7-踩坑速查表)
+- [6. 阶段五：刷后深度优化（Magisk v30.7、麒麟 710 流畅度 + 2 GiB ZRAM、关停 `dump-logs` 与有线调试修复）](#6-阶段五刷后深度优化magisk-v307麒麟-710-流畅度--2-gib-zram关停-dump-logs-与有线调试修复)
+- [7. 阶段六：刷机收尾（清理旧版驱动、恢复 Win11 内存完整性）](#7-阶段六刷机收尾清理旧版驱动恢复-win11-内存完整性)
+- [8. 踩坑速查表](#8-踩坑速查表)
+- [9. 致谢、版权声明与原作者署名](#9-致谢版权声明与原作者署名)
 
 ---
 
-## 1. 实测可用软件与镜像清单
+## 1. 实测可用软件、模块与镜像清单
 
-> **高速镜像下载（GitHub Releases）**：如果 SourceForge 下载限速严重，可直接前往本仓库 **[Releases (`v1.0-mirror`)](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/tag/v1.0-mirror)** 下载已校验镜像包（含 `SHA256SUMS.txt`、预解压 `recovery.img`、无谷歌版与 A13 备选包、Permissive/Enforcing 双版内核）。
+> **高速镜像下载（GitHub Releases）**：
+> - **基础解锁与刷机包**：**[Releases (`v1.0-mirror`)](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/tag/v1.0-mirror)**（含 `Kirin-Tool v2.4.2`、`LeaOS 21.0/20.0`、麒麟 710 双版内核、`SHRP v3.1 potter` 与 `SHA256SUMS.txt`）。
+> - **Root / 流畅度 / ZRAM / 工具优化包（仅限畅享 9 Plus / 麒麟 710）**：**[Releases (`v1.1-optimization`)](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/tag/v1.1-optimization)**（含本机专用 `enjoy9plus_smooth`、`JKM-AL00b 9.1.0.240` Magisk v30.7 修补镜像及 GPLv3/Apache-2.0 上游工具镜像）。
+> - **⚠️ 机型严格隔离提示**：本仓库模块仅适用于 **华为畅享 9 Plus（`JKM-AL00b` / 麒麟 710 / Mali-G51 / 4GB 内存）**；**荣耀 Play（`COR-AL10` / 麒麟 970 / Mali-G72 / 6GB 内存）** 请前往独立仓库 [honor-play-a14-flash-guide](https://github.com/erha-erha/honor-play-a14-flash-guide)。`enjoy9plus_smooth` 在 `customize.sh` 中内置了 `ro.hardware == kirin710` 防刷错校验。
 
-| 用途 | 文件 / 工具 | 大小（实测） | 目标分区 / 说明 | 公开来源与高速镜像 |
+| 用途 | 文件 / 工具 | 大小（实测） | 目标分区 / 说明 | 原作者上游与高速镜像 |
 | :--- | :--- | :--- | :--- | :--- |
-| BL 永久解锁 | `Kirin-Tool v2.4.2` | ~82.7 MB | 需 `.NET 8 Desktop Runtime` | [GitHub 原仓库](https://github.com/kethily-daniel/Kirin-Tool) \| [Release 镜像](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/Kirin-Tool-v2.4.2.zip) |
-| Android 14 ROM（带 GApps） | `LeaOS-21.0-20260118-iceows-google-pot.img` | 压缩包：`1,357,554,880` B<br>解压后：`2,197,798,912` B (~2.05 GiB) | 刷入 `system`（EROFS，可放入 `2392 MB` 的 `system_a`） | [SourceForge](https://sourceforge.net/projects/altairfr-huawei/files/LeaOS-21.0/LeaOS-21.0-20260118-iceows-google-pot.img.xz/download) \| [GitHub 镜像](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/LeaOS-21.0-20260118-iceows-google-pot.img.xz) |
-| A14 适配内核（Permissive） | `Kirin710_EMUI9.1_PM-2025.11.16-04_35.img` | `13,094,912` B (~12.5 MB) | 刷入 `kernel`（4.9.148+ 含 Android 14 必需补丁） | [Iceows GitHub](https://github.com/Iceows/android_kernel_huawei_kirin710-9/releases) \| [GitHub 镜像](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/Kirin710_EMUI9.1_PM-2025.11.16-04_35.img) |
-| 第三方 Recovery | `SHRP_v3.1_stable-Unofficial_potter-1773176050.zip`（内含 `recovery.img`） | `27,146,240` B (~25.9 MB) | 刷入 `recovery_ramdisk`（内含 Iceows 定制 `make_f2fs`） | [SourceForge](https://sourceforge.net/projects/altairfr-huawei/files/SHRP-Recovery/SHRP_v3.1_stable-Unofficial_potter-1773176050.zip/download) \| [镜像 (zip)](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/SHRP_v3.1_stable-Unofficial_potter-1773176050.zip) \| [预解压 `.img`](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/SHRP_v3.1_potter-recovery.img) |
+| BL 永久解锁 | `Kirin-Tool v2.4.2` | ~82.7 MB | 需 `.NET 8 Desktop Runtime` | [@kethily-daniel/Kirin-Tool](https://github.com/kethily-daniel/Kirin-Tool) \| [v1.0 镜像](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/Kirin-Tool-v2.4.2.zip) |
+| Android 14 ROM（带 GApps） | `LeaOS-21.0-20260118-iceows-google-pot.img` | 压缩包：`1,357,554,880` B<br>解压后：`2,197,798,912` B (~2.05 GiB) | 刷入 `system`（EROFS，可放入 `2392 MB` `system_a`） | [@Iceows SourceForge](https://sourceforge.net/projects/altairfr-huawei/files/LeaOS-21.0/LeaOS-21.0-20260118-iceows-google-pot.img.xz/download) \| [v1.0 镜像](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/LeaOS-21.0-20260118-iceows-google-pot.img.xz) |
+| A14 适配内核（Permissive） | `Kirin710_EMUI9.1_PM-2025.11.16-04_35.img` | `13,094,912` B (~12.5 MB) | 刷入 `kernel`（4.9.148+ 含 Android 14 必需补丁） | [@Iceows Kirin710 内核](https://github.com/Iceows/android_kernel_huawei_kirin710-9/releases) \| [v1.0 镜像](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/Kirin710_EMUI9.1_PM-2025.11.16-04_35.img) |
+| 第三方 Recovery（麒麟 710 eMMC） | `SHRP_v3.1_stable-Unofficial_potter-1773176050.zip`（含 `recovery.img`） | `27,146,240` B (~25.9 MB) | 刷入 `recovery_ramdisk`（内含 Iceows 定制 `make_f2fs 1.13.0`） | [@Iceows SourceForge](https://sourceforge.net/projects/altairfr-huawei/files/SHRP-Recovery/SHRP_v3.1_stable-Unofficial_potter-1773176050.zip/download) \| [v1.0 镜像 (zip)](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/SHRP_v3.1_stable-Unofficial_potter-1773176050.zip) \| [预解压 `.img`](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/SHRP_v3.1_potter-recovery.img) |
+| Magisk Root（EMUI `9.1.0.240`） | `Magisk-v30.7.apk` 与 `JKM-AL00b_9.1.0.240_recovery_ramdisk_magisk307.img` | APK：`11.6 MB`<br>镜像：`33,554,432` B | 刷入 `recovery_ramdisk`（**仅限 `JKM-AL00b 9.1.0.240`**，`RECOVERYMODE=true`） | [@topjohnwu/Magisk](https://github.com/topjohnwu/Magisk/releases) \| [v1.1 APK](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.1-optimization/Magisk-v30.7.apk) \| [v1.1 `.img`](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.1-optimization/JKM-AL00b_9.1.0.240_recovery_ramdisk_magisk307.img) |
+| 60Hz 流畅度 + 2 GiB ZRAM 模块（麒麟 710） | `enjoy9plus_smooth-v1.0.0.zip`（[源码](modules/enjoy9plus_smooth/)） | `2,864` B | Magisk 内直刷；麒麟 710 + Mali-G51 调优、2 GiB LZ4 ZRAM、停用 `dump-logs` | [v1.1 下载](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.1-optimization/enjoy9plus_smooth-v1.0.0.zip) |
+| 有线调试死锁修复脚本 | `scripts/fix_wired_adb_ffs.sh`（[源码](scripts/fix_wired_adb_ffs.sh)） | `1.1 KB` | 通过无线调试在线修复 Linux 4.9 `ffs.adb` `-12 (Out of memory)` 死锁 | 本仓库源码 |
+| 开源免按键重启工具 | `RebootNya_1.9.0.apk` | `3.01 MB` | 一键**软重启**（`setprop ctl.restart zygote`），免拔线保留 Magisk 与 ZRAM | [@daisukiKaffuChino/RebootNya](https://github.com/daisukiKaffuChino/RebootNya/releases) \| [v1.1 镜像](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.1-optimization/RebootNya_1.9.0.apk) |
+| 可选真墓碑套件 | `LSPosed-v1.11.0-7209-zygisk-release.zip` 与 `Frozen8.3.0.zip` | `6.79 MB` / `3.04 MB` | 类 iOS 运行态挂起（`GLOBAL_SIGSTOP`，支持 4.9 内核 + A14） | [@JingMatrix/Vector](https://github.com/JingMatrix/Vector/releases) \| [@MoWei-2077/FrozenVS](https://github.com/MoWei-2077/FrozenVS) \| [v1.1 镜像](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/tag/v1.1-optimization) |
+| 可选 Play Integrity 生态 | `PlayIntegrityFork-v19.zip`、`TEESimulator`、`TrickyAddonModule`、`KsuWebUI` | 见 `SHA256SUMS.txt` | GPLv3/Apache-2.0 镜像见 `v1.1`；`TrickyStore` / `KeyAttestation` 请从原仓库下载 | [@osm0sis](https://github.com/osm0sis/PlayIntegrityFork) \| [@JingMatrix](https://github.com/JingMatrix/TEESimulator) \| [@KOWX712](https://github.com/KOWX712/Tricky-Addon-Update-Target-List) \| [@5ec1cff/TrickyStore](https://github.com/5ec1cff/TrickyStore) \| [@vvb2060/KeyAttestation](https://github.com/vvb2060/KeyAttestation) |
+| 代理工具（可选） | `FlClash-0.9.4-android-arm64-v8a.apk` | `60.86 MB` | `arm64-v8a` 版本，支持 URL Scheme 一键导入配置 | [@chen08209/FlClash](https://github.com/chen08209/FlClash/releases) \| [v1.1 镜像](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.1-optimization/FlClash-0.9.4-android-arm64-v8a.apk) |
 | 原厂底包备份 | `stock_KERNEL.img` / `stock_RECOVERY_RAMDISK.img` | 24 MB / 32 MB | 从官方 `UPDATE.APP` 提取留存，用于随时救砖回退 | 官方 EMUI 9.1 固件包 |
-| 代理工具 | `FlClash-0.9.4-android-arm64-v8a.apk` | ~58.0 MB | `arm64-v8a` 版本，支持 URL Scheme 一键导入配置 | [chen08209/FlClash](https://github.com/chen08209/FlClash/releases) |
-| 中文输入法 | `doubaoime_v1.0.0_official.apk` | ~139.4 MB | 豆包手机输入法官方包 | 字节跳动官方 CDN |
+| 中文输入法（可选） | `doubaoime_v1.0.0_official.apk` | ~139.4 MB | 闭源软件不作镜像，请从官方渠道下载 | 字节跳动官方 CDN |
 
 > **⚠️ 高危避坑（切勿刷错包）**：SourceForge 上的 `1-Huawei-DataPrep-A14-AB-v1.0-signed.zip` 是面向 **`hi6250`（麒麟 659）** 的分区预处理包，**不是给麒麟 710 用的，绝对不要刷入本机！**
 
@@ -213,7 +224,50 @@ fastboot flash recovery_ramdisk recovery.img
 
 ---
 
-## 6. 阶段五：刷机收尾（清理旧版驱动、恢复 Win11 内存完整性）
+## 6. 阶段五：刷后深度优化（Magisk v30.7、麒麟 710 流畅度 + 2 GiB ZRAM、关停 `dump-logs` 与有线调试修复）
+
+### 6.1 Magisk v30.7（`recovery_ramdisk`）与日常免按键重启（`RebootNya`）
+- EMUI 9.1 下 Magisk 需以 `RECOVERYMODE=true` 修补原厂 `recovery_ramdisk` 后刷入（`JKM-AL00b_9.1.0.240_recovery_ramdisk_magisk307.img` **仅限 `JKM-AL00b 9.1.0.240`**，其他版本号请用 `Magisk-v30.7.apk` 自行修补原厂 `recovery_ramdisk.img`）。
+- **冷开机进 Magisk 精准松手时机**：拔掉数据线 → 彻底关机 → 按住 **「音量上 + 电源键」** 至英文解锁警告画面 → 松电源键继续按住 **音量上约 5 秒**，看到底部出现 **`Your device is booting now...`** 瞬间立刻松手。
+- **日常免拔线重启**：安装 [`RebootNya_1.9.0.apk`](https://github.com/daisukiKaffuChino/RebootNya)，装模块或改系统配置后直接点 **「软重启」**（`setprop ctl.restart zygote`），约 6–10 秒重载系统框架，全程免拔线、免按键且保留 Magisk 与 ZRAM。
+
+### 6.2 麒麟 710 + Mali-G51 60Hz 流畅度、2 GiB LZ4 ZRAM 与关停 `dump-logs`（`enjoy9plus_smooth`）
+- **本机硬件特征**：畅享 9 Plus（`JKM-AL00b` / `POT-LX1`）配备 `60.00 Hz` LCD 屏、麒麟 710（`4×A53 @ 1.71 GHz + 4×A73 @ 2.19 GHz`，华为 `schedutil`）、Mali-G51 MP4（`mali_ondemand`，`413–999 MHz`）及 `4 GB` 内存（可用 `3.6 GiB`，eMMC 5.1）。
+- 默认刷完 `LeaOS 21.0` 时，**桌面（`Launcher3`）滑动仅约 19 FPS（中位 53ms、掉帧率 54.6%、丢帧 26 次）**，实测查清 5 处瓶颈并打包为专属模块 [`enjoy9plus_smooth-v1.0.0.zip`](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.1-optimization/enjoy9plus_smooth-v1.0.0.zip)（[源码](modules/enjoy9plus_smooth/)）：
+  1. **修复 `LeaOS` `/system/build.prop` 遗留图形属性**：通过 `system.prop` 修正 `hwui.disable_vsync=false`、`debug.hwui.use_buffer_age=true`、`debug.egl.profiler=0`、`debug.hwui.profile=false`，并**保留华为 HWC 2.2 必需的 `debug.sf.disable_backpressure=1` 与 `debug.sf.latch_unsignaled=1`**（注意需重启或执行 `setprop ctl.restart surfaceflinger` 让 `zygote` 重新加载 `libhwui` 才彻底生效）。
+  2. **彻底停用后台吃满 100% 单核的 `dump-logs` 调试服务**：`/system/etc/init/debug-log-gsi.rc` 会在后台死循环跑 `logcat -b all -f /splash2/logcat-normal.txt -v threadtime`，不仅吃满一颗 CPU 核心还疯狂擦写 eMMC 闪存。模块开机自动 `setprop ctl.stop dump-logs` 彻底止损。
+  3. **麒麟 710 `schedutil` 大核响应调优**：开启大核 `fast_ramp_up=1`（原为 `0`）、关闭 `fast_ramp_down=0`、开启 `io_is_busy=1`，大核高频起步提至 `1671 MHz`、升频延迟从 `118ms` 压至 `10–15ms`。
+  4. **Mali-G51 `mali_ondemand` GPU 调优**：开启 `animation_boost=1`、`hispeed_freq=682 MHz`、`vsync_upthreshold=50`，唤醒起步档由 `413 MHz` 抬至 `567 MHz`（实测 SoC 温度仅 `25.4℃`）。
+  5. **开机自启 2 GiB LZ4 ZRAM + 关闭高斯模糊**：针对 4GB 内存跑 Android 14 默认 `Swap=0` 导致的内存抖动，开机自动启用 `2 GiB` LZ4 ZRAM（`swapon -p 100`、`page-cluster=0`、`swappiness=80`），同时开启 `disable_window_blurs=1` 与 `0.5x` 动画缩放。
+  - *（可选）* 如需类 iOS 运行态真墓碑，同样可搭配 `LSPosed v1.11.0 + Frozen 8.3.0`（`全局 SIGSTOP` 模式，详见 [荣耀 Play 指南第 7.3 节](https://github.com/erha-erha/honor-play-a14-flash-guide/blob/main/README.zh-CN.md#73-%E7%B1%BB-ios-%E8%BF%90%E8%A1%8C%E6%80%81%E7%9C%9F%E5%A2%93%E7%A2%91lsposed-v1110--frozen-830)）。
+
+| 实测指标（`dumpsys gfxinfo`，60Hz） | 优化前基线 | 刷入 `enjoy9plus_smooth` 后 |
+| :--- | :--- | :--- |
+| 桌面（`Launcher3`）掉帧率 / 丢帧数 | `54.6%` / `26` 次丢帧 | **`8.9%–10.6%` / `0–2` 次丢帧** |
+| 桌面中位帧耗时 / `DequeueBuffer` 阻塞 | `53 ms` / `25–30 ms` | **`18–26 ms` / `0.04 ms`** |
+| 设置页中位帧耗时 / 掉帧率 | `15 ms`（旧版 `35.2%`） | **`15–16 ms`（`0.8%–1.6%`，0 丢帧）** |
+| 后台 `dump-logs` CPU 占用 | `100%`（吃满单核） | **`0%`（已停用）** |
+
+### 6.3 核心排坑：有线 USB 调试失灵（`ffs.adb` 报 `-12 Out of memory` 死锁）
+- **现象**：插上电脑只显示充电中（`power_supply/USB/type=USB`），换多个 USB 3.0/2.0 口电脑端设备管理器均无任何华为/ADB 设备，但无线调试正常。
+- **根因定位（`dmesg` + `/config/usb_gadget/g1`）**：
+  - 手动绑定纯 `mtp.gs0` 后 Windows 瞬间识别出 `USB\VID_12D1&PID_107E`（`high-speed`），证明数据线与电脑端口完全正常。
+  - 真正原因是 `persist.sys.usb.config` 卡在华为工厂 `manufacture,adb`，且 Linux 4.9 的 `ffs.adb` FunctionFS 实例在长时间运行/拔插后状态异常，每秒死循环报错：
+    ```text
+    configfs_composite_bind:use_os_desc 0
+    configfs-gadget ff100000.dwc3: failed to start g1: -12
+    Unable to write to file '/config/usb_gadget/g1/UDC': Out of memory
+    ```
+- **免重启在线修复方案**（开启手机「无线调试」连入后，用 `setsid` 脱离当前会话执行 [`scripts/fix_wired_adb_ffs.sh`](scripts/fix_wired_adb_ffs.sh)，防止停止 `adbd` 时误杀脚本）：
+  ```powershell
+  adb -s <IP:端口> push scripts/fix_wired_adb_ffs.sh /data/local/tmp/
+  adb -s <IP:端口> shell "su -c 'setsid sh /data/local/tmp/fix_wired_adb_ffs.sh </dev/null >/data/local/tmp/usb_fix.log 2>&1 &'"
+  ```
+  脚本会自动解绑 `UDC`、卸载 `/dev/usb-ffs/adb`、重建 `/config/usb_gadget/g1/functions/ffs.adb`、重新挂载 `functionfs`（`uid=2000,gid=2000`）并设为干净的 `persist.sys.usb.config=adb`，数秒内 Windows 即重新枚举出 `USB\VID_12D1&PID_103A`（`high-speed / CONFIGURED`）。
+
+---
+
+## 7. 阶段六：刷机收尾（清理旧版驱动、恢复 Win11 内存完整性）
 
 刷机与手机调试全部结束后，建议及时清理电脑上临时安装的 2016 旧版华为内核驱动，重新恢复 Windows 11 系统安全防护：
 
@@ -229,7 +283,7 @@ fastboot flash recovery_ramdisk recovery.img
 
 ---
 
-## 7. 踩坑速查表
+## 8. 踩坑速查表
 
 | 现象 / 报错 | 实际根因 | 解决方案 |
 | :--- | :--- | :--- |
@@ -243,3 +297,27 @@ fastboot flash recovery_ramdisk recovery.img
 | 首次进入系统卡在“正在准备我的设备” | 国内无外网，Google SetupWizard 联网超时 | 离线跳过开机向导，进桌面先用 ADB 装代理再登录 Google |
 | Play 商店点击 Chrome“安装”完全无反应 | 首次登录后台自更新导致透明 `SheetUiBuilderHostActivity` 卡死挡住点击 | 划掉后台或执行 `adb shell am force-stop com.android.vending` 后重开即可 |
 | 开机后热插拔 SIM 卡显示无卡（`+CME ERROR: 10`） | 拔卡断电后类原生系统未自动下发 `AT^HVSST=1,1` 重新上电（不支持热插拔） | 关机换卡或插好 SIM 卡后**重启一次手机**即可恢复语音、短信与 4G LTE |
+| 桌面卡顿仅 ~19 FPS 且后台 `logcat-normal.txt` 吃满 100% 单核 | LeaOS `hwui.disable_vsync=true` / `use_buffer_age=false`、麒麟 710 `fast_ramp_up=0`、失控 `dump-logs` 与 4GB 无 ZRAM | Magisk 刷入 `enjoy9plus_smooth-v1.0.0.zip` 后重启（或热重启 `SurfaceFlinger`） |
+| 有线插电脑只充电无 ADB 提示（`failed to start g1: -12`） | Linux 4.9 `ffs.adb` FunctionFS 状态异常导致 `UDC` 报 `-ENOMEM` 死锁，且 `persist.sys.usb.config=manufacture,adb` | 通过无线调试用 `setsid` 执行 [`scripts/fix_wired_adb_ffs.sh`](scripts/fix_wired_adb_ffs.sh) 重建 `ffs.adb` |
+
+---
+
+## 9. 致谢、版权声明与原作者署名
+
+本仓库 GitHub Releases 中镜像的第三方开源软件均为**未经修改的官方原版发布包**，仅用于方便社区玩家高速下载；所有版权归原作者所有并遵循原开源协议。未声明再分发许可的仓库（如 `TrickyStore`、`KeyAttestation`）与闭源软件（如豆包输入法）不作镜像，仅提供官方上游链接。
+
+| 项目 / 组件 | 原作者 | 上游仓库 / 官方地址 | 开源协议 |
+| :--- | :--- | :--- | :--- |
+| **LeaOS 21.0 / 20.0**、**麒麟 710 A14 内核** 与 **EMUI 9 F2FS `make_f2fs` 补丁** | **[@Iceows](https://github.com/Iceows)**（AltairFR） | [Iceows/huawei-creator](https://github.com/Iceows/huawei-creator) \| [Iceows/android_kernel_huawei_kirin710-9](https://github.com/Iceows/android_kernel_huawei_kirin710-9) \| [SourceForge](https://sourceforge.net/projects/altairfr-huawei/) | 开源（LineageOS / GPL / Apache-2.0） |
+| **Kirin-Tool v2.4.2** | **[@kethily-daniel](https://github.com/kethily-daniel)** | [kethily-daniel/Kirin-Tool](https://github.com/kethily-daniel/Kirin-Tool) | 开源 |
+| **SHRP v3.1（`potter`）** | **Team SHRP** & **[@Iceows](https://github.com/Iceows)** | [SHRP-Reborn](https://github.com/SHRP-Reborn) \| [SourceForge](https://sourceforge.net/projects/altairfr-huawei/files/SHRP-Recovery/) | GPL-3.0 |
+| **Magisk v30.7** | **[@topjohnwu](https://github.com/topjohnwu)** | [topjohnwu/Magisk](https://github.com/topjohnwu/Magisk) | GPL-3.0 |
+| **RebootNya v1.9.0** | **[@daisukiKaffuChino](https://github.com/daisukiKaffuChino)** | [daisukiKaffuChino/RebootNya](https://github.com/daisukiKaffuChino/RebootNya) | Apache-2.0 |
+| **LSPosed v1.11.0（Zygisk 版）** 与 **TEESimulator** | **[@JingMatrix](https://github.com/JingMatrix)** & 贡献者 | [JingMatrix/Vector](https://github.com/JingMatrix/Vector) \| [JingMatrix/TEESimulator](https://github.com/JingMatrix/TEESimulator) | GPL-3.0 |
+| **Frozen 8.3.0（可选真墓碑）** | **[@MoWei-2077](https://github.com/MoWei-2077)**（基于 **[@jark006](https://github.com/jark006)**） | [MoWei-2077/FrozenVS](https://github.com/MoWei-2077/FrozenVS) \| [jark006/freezeitVS](https://github.com/jark006/freezeitVS) | GPL-3.0 |
+| **PlayIntegrityFork** | **[@osm0sis](https://github.com/osm0sis)** | [osm0sis/PlayIntegrityFork](https://github.com/osm0sis/PlayIntegrityFork) | GPL-3.0 |
+| **TrickyStore** 与 **KsuWebUIStandalone** | **[@5ec1cff](https://github.com/5ec1cff)** | [5ec1cff/TrickyStore](https://github.com/5ec1cff/TrickyStore) \| [5ec1cff/KsuWebUIStandalone](https://github.com/5ec1cff/KsuWebUIStandalone) | 原仓库直链 / GPL-3.0 |
+| **Tricky-Addon-Update-Target-List** | **[@KOWX712](https://github.com/KOWX712)** | [KOWX712/Tricky-Addon-Update-Target-List](https://github.com/KOWX712/Tricky-Addon-Update-Target-List) | Apache-2.0 |
+| **KeyAttestation** | **[@vvb2060](https://github.com/vvb2060)** | [vvb2060/KeyAttestation](https://github.com/vvb2060/KeyAttestation) | 原仓库直链 |
+| **FlClash v0.9.4** | **[@chen08209](https://github.com/chen08209)** | [chen08209/FlClash](https://github.com/chen08209/FlClash) | GPL-3.0 |
+| **姊妹机型实战指南（荣耀 Play / 麒麟 970）** | **[@erha-erha](https://github.com/erha-erha)** | [erha-erha/honor-play-a14-flash-guide](https://github.com/erha-erha/honor-play-a14-flash-guide) | 开源 |

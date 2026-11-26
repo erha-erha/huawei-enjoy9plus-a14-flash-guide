@@ -1,0 +1,9 @@
+# Fix LeaOS 21.0 /system/build.prop HWUI/EGL overhead while keeping Huawei EMUI 9.1 HWC 2.2 compatibility
+hwui.disable_vsync=false
+debug.cpurend.vsync=true
+debug.egl.profiler=0
+debug.hwui.profile=false
+debug.hwui.use_buffer_age=true
+debug.sf.disable_backpressure=1
+debug.sf.enable_gl_backpressure=0
+debug.sf.latch_unsignaled=1

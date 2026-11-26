@@ -1,0 +1,6 @@
+id=enjoy9plus_smooth
+name=Enjoy 9 Plus (Kirin 710) Smooth, Low-Latency & 2 GiB ZRAM
+version=1.0.0
+versionCode=100
+author=erha-erha
+description=Fix LeaOS 21.0 VSync/buffer-age/profiler lag while keeping Huawei EMUI 9.1 HWC 2.2 compatibility, optimize Kirin 710 schedutil + Mali-G51 animation_boost & 567MHz wake floor, enable 2 GiB LZ4 ZRAM, and stop runaway dump-logs.
