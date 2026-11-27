@@ -1,0 +1,2 @@
+# Override EMUI 9.1 /vendor/default.prop's broken manufacture,adb default
+persist.sys.usb.config=adb

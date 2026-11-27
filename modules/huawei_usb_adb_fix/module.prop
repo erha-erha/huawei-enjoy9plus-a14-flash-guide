@@ -1,0 +1,6 @@
+id=huawei_usb_adb_fix
+name=Huawei EMUI 9.1 (Kirin) Wired USB ADB Permanent Fix
+version=1.2.0
+versionCode=120
+author=erha-erha
+description=Fix Android 14 adbd <-> Linux 4.9 f_fs.c FUNCTIONFS_BIND / EBUSY / ENOMEM (-12) deadlock on Huawei Kirin 970/710 LeaOS 21.0: overrides broken /vendor/default.prop manufacture,adb and runs a 0% CPU event-driven self-healing guardian for /dev/usb-ffs/adb.

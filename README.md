@@ -4,7 +4,7 @@
 
 > **Target Device**: Huawei Enjoy 9 Plus (`JKM-AL00b` / `JKM-AL20`, HiSilicon Kirin 710, `arm64-v8a`, `system_a = 2392 MB`, `userdata = mmcblk0p70 / 111 GB`)  
 > **Starting Firmware**: Stock EMUI `9.1.0.240(C00E235R4P3)` (Android security patch `2021-03-01`)  
-> **Verified Outcome**: Permanently unlocked Bootloader + **Android 14** (`LeaOS 21.0` Google / LineageOS 21) + Iceows A14 Kirin 710 kernel + `SHRP v3.1` Recovery + working 4G LTE voice/SMS/data + Google Play & core Google apps + **Magisk v30.7**, **Kirin 710 + Mali-G51 60Hz smoothness & 2 GiB LZ4 ZRAM module (`enjoy9plus_smooth`)**, runaway `dump-logs` fix, and **wired USB ADB (`ffs.adb -12 ENOMEM`) recovery**.
+> **Verified Outcome**: Permanently unlocked Bootloader + **Android 14** (`LeaOS 21.0` Google / LineageOS 21) + Iceows A14 Kirin 710 kernel + `SHRP v3.1` Recovery + working 4G LTE voice/SMS/data + Google Play & core Google apps + **Magisk v30.7**, **Kirin 710 + Mali-G51 60Hz smoothness & 2 GiB LZ4 ZRAM module (`enjoy9plus_smooth`)**, runaway `dump-logs` fix, and **permanent wired USB ADB self-healing (`huawei_usb_adb_fix v1.2.0`)**.
 
 ---
 
@@ -27,7 +27,8 @@
 > **Fast Download Mirrors (GitHub Releases)**:
 > - **Core ROM, Kernel, Unlock & Recovery Pack**: **[Releases (`v1.0-mirror`)](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/tag/v1.0-mirror)** (`Kirin-Tool v2.4.2`, `LeaOS 21.0/20.0`, `Kirin710_EMUI9.1` kernels, `SHRP v3.1 potter`, `SHA256SUMS.txt`).
 > - **Root, Smoothness, ZRAM & Tools Pack (Enjoy 9 Plus / Kirin 710 ONLY)**: **[Releases (`v1.1-optimization`)](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/tag/v1.1-optimization)** (`enjoy9plus_smooth`, `JKM-AL00b 9.1.0.240` Magisk v30.7 recovery image, plus GPLv3/Apache-2.0 upstream mirrors).
-> - **⚠️ Hardware Separation Warning**: All modules in this repo target **Huawei Enjoy 9 Plus (`JKM-AL00b` / Kirin 710 / Mali-G51 / 4 GB RAM)** ONLY. For **Honor Play (`COR-AL10` / Kirin 970 / Mali-G72 / 6 GB RAM)**, use [honor-play-a14-flash-guide](https://github.com/erha-erha/honor-play-a14-flash-guide). `enjoy9plus_smooth` verifies `ro.hardware == kirin710` inside `customize.sh` to prevent cross-flashing.
+> - **Permanent Wired USB ADB Self-Healing Pack**: **[Releases (`v1.2-usb-adb-fix`)](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/tag/v1.2-usb-adb-fix)** (`huawei_usb_adb_fix-v1.2.0.zip` — permanent EMUI 9.1 Kirin 710/970 wired USB ADB Magisk module + `SHA256SUMS.txt`).
+> - **⚠️ Hardware Separation Warning**: Device-specific tweaks (`enjoy9plus_smooth`) target **Huawei Enjoy 9 Plus (`JKM-AL00b` / Kirin 710 / Mali-G51 / 4 GB RAM)** ONLY and verify `ro.hardware == kirin710` inside `customize.sh`. Only `huawei_usb_adb_fix` is a shared EMUI 9.1 ConfigFS/FunctionFS fix verified on both Kirin 710 and Kirin 970. For **Honor Play (`COR-AL10` / Kirin 970 / Mali-G72 / 6 GB RAM)**, use [honor-play-a14-flash-guide](https://github.com/erha-erha/honor-play-a14-flash-guide).
 
 | Role | Artifact / Tool | Verified Size | Target Partition / Notes | Upstream Source & Fast Mirror |
 | :--- | :--- | :--- | :--- | :--- |
@@ -37,7 +38,8 @@
 | Custom Recovery (Kirin 710 eMMC) | `SHRP_v3.1_stable-Unofficial_potter-1773176050.zip` (`recovery.img`) | `27,146,240` B (~25.9 MB) | Flash to `recovery_ramdisk` (includes Iceows patched `make_f2fs 1.13.0`) | [@Iceows SourceForge](https://sourceforge.net/projects/altairfr-huawei/files/SHRP-Recovery/SHRP_v3.1_stable-Unofficial_potter-1773176050.zip/download) \| [v1.0 Mirror (zip)](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/SHRP_v3.1_stable-Unofficial_potter-1773176050.zip) \| [Pre-extracted `.img`](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/SHRP_v3.1_potter-recovery.img) |
 | Magisk Root (EMUI `9.1.0.240`) | `Magisk-v30.7.apk` & `JKM-AL00b_9.1.0.240_recovery_ramdisk_magisk307.img` | APK: `11.6 MB`<br>Image: `33,554,432` B | Flash patched image to `recovery_ramdisk` (**ONLY** for `JKM-AL00b 9.1.0.240`, `RECOVERYMODE=true`) | [@topjohnwu/Magisk](https://github.com/topjohnwu/Magisk/releases) \| [v1.1 APK](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.1-optimization/Magisk-v30.7.apk) \| [v1.1 `.img`](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.1-optimization/JKM-AL00b_9.1.0.240_recovery_ramdisk_magisk307.img) |
 | 60Hz Smoothness + 2 GiB ZRAM (Kirin 710) | `enjoy9plus_smooth-v1.0.0.zip` ([source](modules/enjoy9plus_smooth/)) | `2,864` B | Flash in Magisk Manager; Kirin 710 + Mali-G51 tuning, 2 GiB LZ4 ZRAM, stops runaway `dump-logs` | [v1.1 Release](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.1-optimization/enjoy9plus_smooth-v1.0.0.zip) |
-| Wired USB ADB Recovery Script | `scripts/fix_wired_adb_ffs.sh` ([source](scripts/fix_wired_adb_ffs.sh)) | `1.1 KB` | Fixes Linux 4.9 `ffs.adb` `-12 (Out of memory)` USB Gadget deadlock live via Wireless ADB | In this repo |
+| Permanent Wired USB ADB Fix (Kirin 710/970) | `huawei_usb_adb_fix-v1.2.0.zip` ([source](modules/huawei_usb_adb_fix/)) | `3,811` B | **Recommended**: Flash in Magisk Manager; overrides `manufacture,adb` and runs 0% idle CPU event-driven self-healing for `FUNCTIONFS_BIND` / `EBUSY` / `-12 ENOMEM` deadlocks | [v1.2 Release](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.2-usb-adb-fix/huawei_usb_adb_fix-v1.2.0.zip) |
+| Emergency Wired USB ADB Script (Fallback) | `scripts/fix_wired_adb_ffs.sh` ([source](scripts/fix_wired_adb_ffs.sh)) | `1.1 KB` | One-shot Wireless ADB fallback before installing `huawei_usb_adb_fix-v1.2.0.zip` | In this repo |
 | Open-Source Reboot Tool | `RebootNya_1.9.0.apk` | `3.01 MB` | One-tap **Soft Reboot** (`setprop ctl.restart zygote`) keeping Magisk & ZRAM alive | [@daisukiKaffuChino/RebootNya](https://github.com/daisukiKaffuChino/RebootNya/releases) \| [v1.1 Mirror](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.1-optimization/RebootNya_1.9.0.apk) |
 | Optional Runtime Tombstone | `LSPosed-v1.11.0-7209-zygisk-release.zip` & `Frozen8.3.0.zip` | `6.79 MB` / `3.04 MB` | iOS-style background suspension (`GLOBAL_SIGSTOP`, compatible with Linux 4.9 + A14) | [@JingMatrix/Vector](https://github.com/JingMatrix/Vector/releases) \| [@MoWei-2077/FrozenVS](https://github.com/MoWei-2077/FrozenVS) \| [v1.1 Mirrors](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/tag/v1.1-optimization) |
 | Optional Play Integrity Modules | `PlayIntegrityFork-v19.zip`, `TEESimulator`, `TrickyAddonModule`, `KsuWebUI` | See `SHA256SUMS.txt` | GPLv3/Apache-2.0 mirrors in `v1.1`; obtain `TrickyStore` / `KeyAttestation` directly from upstream | [@osm0sis](https://github.com/osm0sis/PlayIntegrityFork) \| [@JingMatrix](https://github.com/JingMatrix/TEESimulator) \| [@KOWX712](https://github.com/KOWX712/Tricky-Addon-Update-Target-List) \| [@5ec1cff/TrickyStore](https://github.com/5ec1cff/TrickyStore) \| [@vvb2060/KeyAttestation](https://github.com/vvb2060/KeyAttestation) |
@@ -247,22 +249,26 @@ Two separate issues combined to cause an endless bootloop on the 3-circle Lineag
 | Settings Median Frame / Jank | `15 ms` (Legacy `35.2%`) | **`15–16 ms` (`0.8%–1.6%`, `0` missed)** |
 | Runaway `dump-logs` CPU Usage | `100%` (1 full core) | **`0%` (`stopped`)** |
 
-### 6.3 Root-Cause Fix: Wired USB Debugging Vanishes (`ffs.adb` `-12 Out of memory` Deadlock)
-- **Symptom**: Phone shows charging over USB (`power_supply/USB/type=USB`), yet Windows Device Manager sees no Huawei/ADB device at all even across different USB ports — while Wireless Debugging works fine.
-- **Root Cause (`dmesg` + `/config/usb_gadget/g1`)**:
-  - Binding pure `mtp.gs0` immediately enumerates `USB\VID_12D1&PID_107E` at `high-speed`, proving the cable and PC port are healthy.
-  - `persist.sys.usb.config` was stuck on Huawei factory `manufacture,adb`, and Linux `4.9`'s `ffs.adb` FunctionFS instance entered a corrupted state after long uptime/replugs, looping every second:
-    ```text
-    configfs_composite_bind:use_os_desc 0
-    configfs-gadget ff100000.dwc3: failed to start g1: -12
-    Unable to write to file '/config/usb_gadget/g1/UDC': Out of memory
-    ```
-- **Live Zero-Reboot Fix** (connect via Wireless ADB and run [`scripts/fix_wired_adb_ffs.sh`](scripts/fix_wired_adb_ffs.sh) detached via `setsid` so stopping `adbd` does not kill the script mid-run):
+### 6.3 Root-Cause Fix: Wired USB Debugging Vanishes (`FUNCTIONFS_BIND` / `EBUSY` / `ffs.adb -12 ENOMEM`) — Permanent Self-Healing Module (`huawei_usb_adb_fix v1.2.0`)
+- **Symptom**: Phone shows charging over USB (`power_supply/USB/type=USB`), yet Windows Device Manager sees zero `VID_12D1` / ADB devices even across different USB ports — while Wireless Debugging works fine. When swapping between two Huawei/Honor EMUI 9.1 phones on the same PC, this is often mistaken for a Windows multi-device USB driver conflict, **but it is 100% phone-side**.
+- **Verified 3-Layer Root Cause (`dmesg` + `logcat` + `/vendor/default.prop` + `/config/usb_gadget/g1`)**:
+  1. **Invalid Vendor Default**: `/vendor/default.prop` hardcodes `persist.sys.usb.config=manufacture,adb`, which has no matching `on property:` rule in LeaOS `init.usb.configfs.rc` or `init.hisi.usb.rc`. (Binding pure `mtp.gs0` immediately enumerates `USB\VID_12D1&PID_107E` at `high-speed`, proving the cable and PC port are healthy.)
+  2. **Android 14 `adbd` ↔ Linux 4.9 `f_fs.c` `FUNCTIONFS_BIND` / `EBUSY` Race**: Android 14 APEX `/apex/com.android.adbd/bin/adbd` hardcodes a 1-second `FUNCTIONFS_BIND` wait (`timed out while waiting for FUNCTIONFS_BIND, trying again`, with no property to disable it). When unplug/replug or sleep causes `adbd` to close and reopen `ep0` while `g1/UDC` is still `ff100000.dwc3`, `init`'s UDC rewrite fails with `EBUSY` and Linux 4.9 `f_fs.c` never re-emits `FUNCTIONFS_BIND`, locking `adbd` into an infinite 1-second loop that drops USB D+ pull-up.
+  3. **Poisoned `ffs.adb` → `-12 ENOMEM`**: Once stuck, Linux 4.9's `ffs.adb` FunctionFS instance fails even standard `sys.usb.config none → adb` in a 1-second loop until `/dev/usb-ffs/adb` is unmounted and `ffs.adb` is recreated:
+     ```text
+     configfs_composite_bind:use_os_desc 0
+     configfs-gadget ff100000.dwc3: failed to start g1: -12
+     Unable to write to file '/config/usb_gadget/g1/UDC': Out of memory
+     ```
+- **Recommended Permanent Fix ([`huawei_usb_adb_fix-v1.2.0.zip`](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.2-usb-adb-fix/huawei_usb_adb_fix-v1.2.0.zip) / [source](modules/huawei_usb_adb_fix/))**:
+  - Flash in Magisk Manager. `system.prop` overrides `persist.sys.usb.config=adb`, and `usb_adb_guard.sh` runs a **0% idle CPU** event-driven watcher (`logcat -b main -T 1 -v epoch adbd:W '*:S'`).
+  - Filters stale pre-start/pre-recovery lines by epoch timestamp, **skips recovery whenever UDC is already `configured`** (never disrupts live USB transfers), checks `/proc/mounts` directly (never bare `mount`, which spins at 99% CPU on Magisk's large mount table), cleanly unmounts/rebuilds `/config/usb_gadget/g1/functions/ffs.adb`, remounts `functionfs` (`uid=2000,gid=2000`), and restores the active USB mode (`adb` / `mtp,adb` / etc.).
+  - **Live Real-Fault Verification on Enjoy 9 Plus (`JKM-AL00b`)**: Deployed directly onto a live broken `FUNCTIONFS_BIND` / `EBUSY` disconnect with zero manual recovery steps — detected within **4 seconds** and auto-healed in **8 seconds** (~12 seconds total) to `UDC=[ff100000.dwc3] state=[configured]`, automatically re-enumerating `USB\VID_12D1&PID_103A\<SERIAL>` on Windows with **0% idle CPU**.
+- **Emergency One-Shot Fallback** (if you need to recover wired ADB over Wireless ADB before installing Magisk / `huawei_usb_adb_fix-v1.2.0.zip`, run [`scripts/fix_wired_adb_ffs.sh`](scripts/fix_wired_adb_ffs.sh) detached via `setsid` so stopping `adbd` does not kill the script mid-run):
   ```powershell
   adb -s <IP:PORT> push scripts/fix_wired_adb_ffs.sh /data/local/tmp/
   adb -s <IP:PORT> shell "su -c 'setsid sh /data/local/tmp/fix_wired_adb_ffs.sh </dev/null >/data/local/tmp/usb_fix.log 2>&1 &'"
   ```
-  It cleanly unbinds `UDC`, unmounts `/dev/usb-ffs/adb`, recreates `/config/usb_gadget/g1/functions/ffs.adb`, remounts `functionfs` (`uid=2000,gid=2000`), sets `persist.sys.usb.config=adb`, and rebinds `ff100000.dwc3` → Windows immediately enumerates `USB\VID_12D1&PID_103A` (`high-speed / CONFIGURED`).
 
 ---
 
@@ -297,7 +303,7 @@ Once flashing and USB debugging are finished, remove the legacy 2016 Huawei kern
 | Tapping **Install** on Chrome in Play Store does nothing | Invisible `SheetUiBuilderHostActivity` stuck during background Play Store/GMS self-update | Force-stop Play Store (`adb shell am force-stop com.android.vending`) and reopen |
 | SIM card shows `ABSENT` / `+CME ERROR: 10` after hot-plug | Tray eject powers off SIM (`ro.odm.pwroff_card_if_tray_out=true`); AOSP lacks EMUI's `AT^HVSST=1,1` re-power flow | **Reboot with the SIM card inserted** (power off or reboot whenever swapping SIMs) |
 | Home screen sluggish (~19 FPS) & 100% CPU `logcat-normal.txt` | LeaOS `hwui.disable_vsync=true` / `use_buffer_age=false`, conservative Kirin 710 `schedutil` (`fast_ramp_up=0`), runaway `dump-logs`, and 0 Swap on 4 GB RAM | Flash `enjoy9plus_smooth-v1.0.0.zip` in Magisk and reboot (or `ctl.restart surfaceflinger`) |
-| Wired USB only charges; PC sees no ADB (`failed to start g1: -12`) | Linux 4.9 `ffs.adb` FunctionFS state corrupted (`-ENOMEM` on `UDC` bind) + `persist.sys.usb.config=manufacture,adb` | Run [`scripts/fix_wired_adb_ffs.sh`](scripts/fix_wired_adb_ffs.sh) detached via `setsid` over Wireless ADB |
+| Wired USB only charges; PC sees zero `VID_12D1` devices (`FUNCTIONFS_BIND` / `failed to start g1: -12`) | `/vendor/default.prop` `manufacture,adb` + Android 14 `adbd` ↔ Linux 4.9 `f_fs.c` `FUNCTIONFS_BIND` / `EBUSY` / `ffs.adb -12 ENOMEM` deadlock (not a Windows driver conflict) | Flash `huawei_usb_adb_fix-v1.2.0.zip` in Magisk for permanent 0% CPU self-healing (or use [`scripts/fix_wired_adb_ffs.sh`](scripts/fix_wired_adb_ffs.sh) via Wireless ADB as emergency fallback) |
 
 ---
 

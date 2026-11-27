@@ -4,7 +4,7 @@
 
 > **目标设备**：华为畅享 9 Plus（型号 `JKM-AL00b` / `JKM-AL20`，SoC：海思麒麟 710，`arm64-v8a`，`system_a = 2392 MB`，`userdata = mmcblk0p70 / 111 GB`）  
 > **起始系统**：EMUI `9.1.0.240(C00E235R4P3)`（安全补丁 `2021-03-01`）  
-> **最终成果**：永久解锁 Bootloader + `Android 14`（`LeaOS 21.0` Google 版，基于 LineageOS 21）+ Iceows A14 适配内核 + `SHRP v3.1` Recovery + 4G LTE 蜂窝语音/短信/数据 + Google 全家桶 + **`Magisk v30.7`** + **麒麟 710 + Mali-G51 60Hz 流畅度与 2 GiB LZ4 ZRAM 专项模块（`enjoy9plus_smooth`）** + 后台 `dump-logs` 止损与 **有线 USB 调试（`ffs.adb -12 ENOMEM`）死锁修复**。
+> **最终成果**：永久解锁 Bootloader + `Android 14`（`LeaOS 21.0` Google 版，基于 LineageOS 21）+ Iceows A14 适配内核 + `SHRP v3.1` Recovery + 4G LTE 蜂窝语音/短信/数据 + Google 全家桶 + **`Magisk v30.7`** + **麒麟 710 + Mali-G51 60Hz 流畅度与 2 GiB LZ4 ZRAM 专项模块（`enjoy9plus_smooth`）** + 后台 `dump-logs` 止损与 **有线 USB 调试永久自愈模块（`huawei_usb_adb_fix v1.2.0`）**。
 
 ---
 
@@ -27,7 +27,8 @@
 > **高速镜像下载（GitHub Releases）**：
 > - **基础解锁与刷机包**：**[Releases (`v1.0-mirror`)](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/tag/v1.0-mirror)**（含 `Kirin-Tool v2.4.2`、`LeaOS 21.0/20.0`、麒麟 710 双版内核、`SHRP v3.1 potter` 与 `SHA256SUMS.txt`）。
 > - **Root / 流畅度 / ZRAM / 工具优化包（仅限畅享 9 Plus / 麒麟 710）**：**[Releases (`v1.1-optimization`)](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/tag/v1.1-optimization)**（含本机专用 `enjoy9plus_smooth`、`JKM-AL00b 9.1.0.240` Magisk v30.7 修补镜像及 GPLv3/Apache-2.0 上游工具镜像）。
-> - **⚠️ 机型严格隔离提示**：本仓库模块仅适用于 **华为畅享 9 Plus（`JKM-AL00b` / 麒麟 710 / Mali-G51 / 4GB 内存）**；**荣耀 Play（`COR-AL10` / 麒麟 970 / Mali-G72 / 6GB 内存）** 请前往独立仓库 [honor-play-a14-flash-guide](https://github.com/erha-erha/honor-play-a14-flash-guide)。`enjoy9plus_smooth` 在 `customize.sh` 中内置了 `ro.hardware == kirin710` 防刷错校验。
+> - **有线 USB 调试永久自愈包**：**[Releases (`v1.2-usb-adb-fix`)](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/tag/v1.2-usb-adb-fix)**（含 EMUI 9.1 麒麟 710/970 通用永久自愈模块 `huawei_usb_adb_fix-v1.2.0.zip` 与 `SHA256SUMS.txt`）。
+> - **⚠️ 机型严格隔离提示**：本机性能调优模块（`enjoy9plus_smooth`）**仅适用于华为畅享 9 Plus（`JKM-AL00b` / 麒麟 710 / Mali-G51 / 4GB 内存）**，在 `customize.sh` 中内置了 `ro.hardware == kirin710` 防刷错校验。仅 `huawei_usb_adb_fix` 为 EMUI 9.1 通用 ConfigFS/FunctionFS 修复模块（已在麒麟 710 与麒麟 970 双机实测通过）。**荣耀 Play（`COR-AL10` / 麒麟 970 / Mali-G72 / 6GB 内存）** 请前往独立仓库 [honor-play-a14-flash-guide](https://github.com/erha-erha/honor-play-a14-flash-guide)。
 
 | 用途 | 文件 / 工具 | 大小（实测） | 目标分区 / 说明 | 原作者上游与高速镜像 |
 | :--- | :--- | :--- | :--- | :--- |
@@ -37,7 +38,8 @@
 | 第三方 Recovery（麒麟 710 eMMC） | `SHRP_v3.1_stable-Unofficial_potter-1773176050.zip`（含 `recovery.img`） | `27,146,240` B (~25.9 MB) | 刷入 `recovery_ramdisk`（内含 Iceows 定制 `make_f2fs 1.13.0`） | [@Iceows SourceForge](https://sourceforge.net/projects/altairfr-huawei/files/SHRP-Recovery/SHRP_v3.1_stable-Unofficial_potter-1773176050.zip/download) \| [v1.0 镜像 (zip)](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/SHRP_v3.1_stable-Unofficial_potter-1773176050.zip) \| [预解压 `.img`](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.0-mirror/SHRP_v3.1_potter-recovery.img) |
 | Magisk Root（EMUI `9.1.0.240`） | `Magisk-v30.7.apk` 与 `JKM-AL00b_9.1.0.240_recovery_ramdisk_magisk307.img` | APK：`11.6 MB`<br>镜像：`33,554,432` B | 刷入 `recovery_ramdisk`（**仅限 `JKM-AL00b 9.1.0.240`**，`RECOVERYMODE=true`） | [@topjohnwu/Magisk](https://github.com/topjohnwu/Magisk/releases) \| [v1.1 APK](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.1-optimization/Magisk-v30.7.apk) \| [v1.1 `.img`](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.1-optimization/JKM-AL00b_9.1.0.240_recovery_ramdisk_magisk307.img) |
 | 60Hz 流畅度 + 2 GiB ZRAM 模块（麒麟 710） | `enjoy9plus_smooth-v1.0.0.zip`（[源码](modules/enjoy9plus_smooth/)） | `2,864` B | Magisk 内直刷；麒麟 710 + Mali-G51 调优、2 GiB LZ4 ZRAM、停用 `dump-logs` | [v1.1 下载](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.1-optimization/enjoy9plus_smooth-v1.0.0.zip) |
-| 有线调试死锁修复脚本 | `scripts/fix_wired_adb_ffs.sh`（[源码](scripts/fix_wired_adb_ffs.sh)） | `1.1 KB` | 通过无线调试在线修复 Linux 4.9 `ffs.adb` `-12 (Out of memory)` 死锁 | 本仓库源码 |
+| 有线 USB 调试永久自愈（麒麟 710/970） | `huawei_usb_adb_fix-v1.2.0.zip`（[源码](modules/huawei_usb_adb_fix/)） | `3,811` B | **推荐**：Magisk 内直刷；覆盖 `manufacture,adb` 并以 0% 待机 CPU 事件监听自动自愈 `FUNCTIONFS_BIND` / `EBUSY` / `-12 ENOMEM` 死锁 | [v1.2 下载](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.2-usb-adb-fix/huawei_usb_adb_fix-v1.2.0.zip) |
+| 应急有线调试脚本（兜底备用） | `scripts/fix_wired_adb_ffs.sh`（[源码](scripts/fix_wired_adb_ffs.sh)） | `1.1 KB` | 尚未安装 `huawei_usb_adb_fix-v1.2.0.zip` 时的无线 ADB 一次性应急修复脚本 | 本仓库源码 |
 | 开源免按键重启工具 | `RebootNya_1.9.0.apk` | `3.01 MB` | 一键**软重启**（`setprop ctl.restart zygote`），免拔线保留 Magisk 与 ZRAM | [@daisukiKaffuChino/RebootNya](https://github.com/daisukiKaffuChino/RebootNya/releases) \| [v1.1 镜像](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.1-optimization/RebootNya_1.9.0.apk) |
 | 可选真墓碑套件 | `LSPosed-v1.11.0-7209-zygisk-release.zip` 与 `Frozen8.3.0.zip` | `6.79 MB` / `3.04 MB` | 类 iOS 运行态挂起（`GLOBAL_SIGSTOP`，支持 4.9 内核 + A14） | [@JingMatrix/Vector](https://github.com/JingMatrix/Vector/releases) \| [@MoWei-2077/FrozenVS](https://github.com/MoWei-2077/FrozenVS) \| [v1.1 镜像](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/tag/v1.1-optimization) |
 | 可选 Play Integrity 生态 | `PlayIntegrityFork-v19.zip`、`TEESimulator`、`TrickyAddonModule`、`KsuWebUI` | 见 `SHA256SUMS.txt` | GPLv3/Apache-2.0 镜像见 `v1.1`；`TrickyStore` / `KeyAttestation` 请从原仓库下载 | [@osm0sis](https://github.com/osm0sis/PlayIntegrityFork) \| [@JingMatrix](https://github.com/JingMatrix/TEESimulator) \| [@KOWX712](https://github.com/KOWX712/Tricky-Addon-Update-Target-List) \| [@5ec1cff/TrickyStore](https://github.com/5ec1cff/TrickyStore) \| [@vvb2060/KeyAttestation](https://github.com/vvb2060/KeyAttestation) |
@@ -248,22 +250,26 @@ fastboot flash recovery_ramdisk recovery.img
 | 设置页中位帧耗时 / 掉帧率 | `15 ms`（旧版 `35.2%`） | **`15–16 ms`（`0.8%–1.6%`，0 丢帧）** |
 | 后台 `dump-logs` CPU 占用 | `100%`（吃满单核） | **`0%`（已停用）** |
 
-### 6.3 核心排坑：有线 USB 调试失灵（`ffs.adb` 报 `-12 Out of memory` 死锁）
-- **现象**：插上电脑只显示充电中（`power_supply/USB/type=USB`），换多个 USB 3.0/2.0 口电脑端设备管理器均无任何华为/ADB 设备，但无线调试正常。
-- **根因定位（`dmesg` + `/config/usb_gadget/g1`）**：
-  - 手动绑定纯 `mtp.gs0` 后 Windows 瞬间识别出 `USB\VID_12D1&PID_107E`（`high-speed`），证明数据线与电脑端口完全正常。
-  - 真正原因是 `persist.sys.usb.config` 卡在华为工厂 `manufacture,adb`，且 Linux 4.9 的 `ffs.adb` FunctionFS 实例在长时间运行/拔插后状态异常，每秒死循环报错：
-    ```text
-    configfs_composite_bind:use_os_desc 0
-    configfs-gadget ff100000.dwc3: failed to start g1: -12
-    Unable to write to file '/config/usb_gadget/g1/UDC': Out of memory
-    ```
-- **免重启在线修复方案**（开启手机「无线调试」连入后，用 `setsid` 脱离当前会话执行 [`scripts/fix_wired_adb_ffs.sh`](scripts/fix_wired_adb_ffs.sh)，防止停止 `adbd` 时误杀脚本）：
+### 6.3 核心排坑：有线 USB 调试失灵（`FUNCTIONFS_BIND` / `EBUSY` / `ffs.adb -12 ENOMEM`）与永久自愈模块（`huawei_usb_adb_fix v1.2.0`）
+- **现象**：插上电脑只显示充电中（`power_supply/USB/type=USB`），换多个 USB 3.0/2.0 口电脑端设备管理器均无任何 `VID_12D1` / ADB 设备，但无线调试正常。当电脑交替连接畅享 9 Plus 与荣耀 Play 两台华为/荣耀 EMUI 9.1 手机时，极易误判为 Windows 多机驱动冲突，**但经实测 100% 是手机端固件与内核交互死锁**。
+- **三层叠加根因（`dmesg` + `logcat` + `/vendor/default.prop` + `/config/usb_gadget/g1`）**：
+  1. **原厂 `/vendor/default.prop` 默认值失效**：华为原厂写死了 `persist.sys.usb.config=manufacture,adb`，但 LeaOS 的 `init.usb.configfs.rc` 与 `init.hisi.usb.rc` 中均无匹配规则（手动绑定纯 `mtp.gs0` 后 Windows 瞬间识别出 `USB\VID_12D1&PID_107E`，证明数据线与电脑端口完全正常）。
+  2. **Android 14 `adbd` 与 Linux 4.9 `f_fs.c` 的 `FUNCTIONFS_BIND` / `EBUSY` 竞争死锁**：Android 14 APEX `/apex/com.android.adbd/bin/adbd` 硬编码了 1 秒等待 `FUNCTIONFS_BIND` 超时（`timed out while waiting for FUNCTIONFS_BIND, trying again`，无属性可关）。拔插或休眠导致 `adbd` 关闭重开 `ep0` 时，若 `g1/UDC` 仍绑定 `ff100000.dwc3`，`init` 重写 `UDC` 报 `EBUSY` 且 4.9 内核 `f_fs.c` 不再补发 `FUNCTIONFS_BIND`，`adbd` 陷入 1 秒死循环并拉低 USB D+ 上拉电阻。
+  3. **`ffs.adb` 实例中毒触发 `-12 ENOMEM`**：一旦卡入该循环，Linux 4.9 的 `ffs.adb` 实例即便走常规 `sys.usb.config none → adb` 也会持续每秒报错，必须卸载 `/dev/usb-ffs/adb` 并重建 `ffs.adb`：
+     ```text
+     configfs_composite_bind:use_os_desc 0
+     configfs-gadget ff100000.dwc3: failed to start g1: -12
+     Unable to write to file '/config/usb_gadget/g1/UDC': Out of memory
+     ```
+- **推荐永久自愈方案（[`huawei_usb_adb_fix-v1.2.0.zip`](https://github.com/erha-erha/huawei-enjoy9plus-a14-flash-guide/releases/download/v1.2-usb-adb-fix/huawei_usb_adb_fix-v1.2.0.zip) / [源码](modules/huawei_usb_adb_fix/)）**：
+  - 在 Magisk 管理器内直刷。`system.prop` 启动早期将 `persist.sys.usb.config` 覆盖为 `adb`，后台 `usb_adb_guard.sh` 以 **0% 待机 CPU** 运行事件驱动监听（`logcat -b main -T 1 -v epoch adbd:W '*:S'`）。
+  - 通过 Unix 时间戳过滤启动前/修复前历史日志、**检测到 `UDC == configured` 时自动跳过绝不打断正常传输**、直接读取 `/proc/mounts`（彻底规避 `toybox mount` 无参扫描 Magisk 挂载表导致 99% CPU 死循环的陷阱），在触发故障时自动卸载并重建 `/config/usb_gadget/g1/functions/ffs.adb`、重挂 `functionfs`（`uid=2000,gid=2000`）并恢复原有 USB 模式（`adb` / `mtp,adb` 等）。
+  - **畅享 9 Plus（`JKM-AL00b`）真实故障现场实测**：在手机已爆发 `FUNCTIONFS_BIND` / `EBUSY` 有线断连的状态下装入 v1.2.0，**零人工干预，4 秒内捕获故障、8 秒内完成重建（全程 ~12 秒）**，自动恢复 `UDC=[ff100000.dwc3] state=[configured]`，Windows 端自动枚举出 `USB\VID_12D1&PID_103A\<序列号>`，待机 CPU 占率为 `0%`。
+- **应急一次性兜底脚本**（若尚未安装 Magisk 或 `huawei_usb_adb_fix-v1.2.0.zip`，仍可通过「无线调试」连入并用 `setsid` 脱离会话执行 [`scripts/fix_wired_adb_ffs.sh`](scripts/fix_wired_adb_ffs.sh)）：
   ```powershell
   adb -s <IP:端口> push scripts/fix_wired_adb_ffs.sh /data/local/tmp/
   adb -s <IP:端口> shell "su -c 'setsid sh /data/local/tmp/fix_wired_adb_ffs.sh </dev/null >/data/local/tmp/usb_fix.log 2>&1 &'"
   ```
-  脚本会自动解绑 `UDC`、卸载 `/dev/usb-ffs/adb`、重建 `/config/usb_gadget/g1/functions/ffs.adb`、重新挂载 `functionfs`（`uid=2000,gid=2000`）并设为干净的 `persist.sys.usb.config=adb`，数秒内 Windows 即重新枚举出 `USB\VID_12D1&PID_103A`（`high-speed / CONFIGURED`）。
 
 ---
 
@@ -298,7 +304,7 @@ fastboot flash recovery_ramdisk recovery.img
 | Play 商店点击 Chrome“安装”完全无反应 | 首次登录后台自更新导致透明 `SheetUiBuilderHostActivity` 卡死挡住点击 | 划掉后台或执行 `adb shell am force-stop com.android.vending` 后重开即可 |
 | 开机后热插拔 SIM 卡显示无卡（`+CME ERROR: 10`） | 拔卡断电后类原生系统未自动下发 `AT^HVSST=1,1` 重新上电（不支持热插拔） | 关机换卡或插好 SIM 卡后**重启一次手机**即可恢复语音、短信与 4G LTE |
 | 桌面卡顿仅 ~19 FPS 且后台 `logcat-normal.txt` 吃满 100% 单核 | LeaOS `hwui.disable_vsync=true` / `use_buffer_age=false`、麒麟 710 `fast_ramp_up=0`、失控 `dump-logs` 与 4GB 无 ZRAM | Magisk 刷入 `enjoy9plus_smooth-v1.0.0.zip` 后重启（或热重启 `SurfaceFlinger`） |
-| 有线插电脑只充电无 ADB 提示（`failed to start g1: -12`） | Linux 4.9 `ffs.adb` FunctionFS 状态异常导致 `UDC` 报 `-ENOMEM` 死锁，且 `persist.sys.usb.config=manufacture,adb` | 通过无线调试用 `setsid` 执行 [`scripts/fix_wired_adb_ffs.sh`](scripts/fix_wired_adb_ffs.sh) 重建 `ffs.adb` |
+| 有线插电脑只充电无 `VID_12D1` 设备（`FUNCTIONFS_BIND` / `failed to start g1: -12`） | `/vendor/default.prop` 残留 `manufacture,adb` + A14 `adbd` 与 4.9 `f_fs.c` `FUNCTIONFS_BIND` / `EBUSY` / `ffs.adb -12 ENOMEM` 死锁（非电脑驱动冲突） | Magisk 刷入 `huawei_usb_adb_fix-v1.2.0.zip` 实现 0% CPU 永久自愈（应急备用无线 ADB `setsid` 运行 [`scripts/fix_wired_adb_ffs.sh`](scripts/fix_wired_adb_ffs.sh)） |
 
 ---
 
